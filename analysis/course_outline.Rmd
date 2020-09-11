@@ -1,0 +1,122 @@
+---
+title: "course_outline"
+author: "Cory Sauve"
+date: "9/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Getting Started 
+
+## Installing R & R Studio
+
+### An Alternative in the Cloud 
+
+## Installing Packages 
+
+***
+
+## Getting Organized
+
+### Working Directory 
+
+### The `here` package
+
+### Working with R Projects 
+
+***
+
+## Using R Studio 
+
+### The IDE 
+
+### Shortcuts & Other Helpful Things 
+
+### R Markdown 
+
+***
+
+## A Gentle Intro to R
+
+### R as an overpowered calculator 
+
+### Creating Objects 
+
+### What's in a Name?
+
+### Vectors 
+
+### The Mighty Pipe 
+
+### Functions 
+
+### Documenting & Getting Help
+
+***
+
+## Working with Data 
+
+### Importing Data 
+
+### Viewing your Data
+
+### Select & Filter 
+
+### Mutate to Create 
+
+### Group & Summarize 
+
+### Pivot 
+
+***
+
+## A Quick Primer on Data Viz 
+
+***
+
+## On to University Lake 
+
+### Water Quality Data 
+
+#### Importing and Viewing the data 
+
+#### Calculating MDL's 
+
+#### Percent Light 
+
+#### Summary Stats 
+
+#### Sig Figs 
+
+### Plankton
+
+### Secchi, One Percent Light, and Bottom of Epi 
+
+***
+
+## WQ Figures 
+
+***
+
+## Plankton Figures
+
+***
+
+## Light Figure 
+
+
+***
+
+## Writing your *entire* report inside of R
+
+***
+
+## Controlling your versions with Git & Github 
+
+
+
+
+
