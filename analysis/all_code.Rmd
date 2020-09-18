@@ -1,0 +1,153 @@
+---
+title: "all_code"
+author: "Cory Sauve"
+date: "9/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Required libraries 
+```{r}
+library(tidyverse)
+library(here)
+library(patchwork)
+```
+
+# Import data 
+```{r}
+water_quality_raw <- read_csv(here("data", "water_quality.csv"))
+plankton_raw <- read_csv(here("data", "plankton.csv"))
+```
+
+# Percent Light Level 
+```{r}
+# Create function
+get_percent_light <- function(light_at_depth, light_at_surface){
+  
+  percent_light <- round((light_at_depth / light_at_surface) * 100, 1)
+  return(percent_light)
+}
+
+# Apply to data 
+water_quality_raw %>% 
+  mutate(
+    light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
+  )
+```
+
+# Control for MDLs 
+```{r}
+# Option A 
+water_quality_raw %>% 
+  mutate(
+    srp_mgl = ifelse(srp_mgl <= 0.002, 0.002, srp_mgl),
+    tp_mgl = ifelse(tp_mgl <= 0.002, 0.002, tp_mgl),
+    no3_mgl = ifelse(no3_mgl <= 0.009, 0.009, no3_mgl),
+    nh3_mgl = ifelse(nh3_mgl <= 0.015, 0.015, nh3_mgl),
+    tn_mgl = ifelse(tn_mgl <= 0.104, 0.104, tn_mgl)
+  )
+```
+
+# Percent Light Level 
+```{r}
+# Create function
+get_percent_light <- function(light_at_depth, light_at_surface){
+  
+  percent_light <- round((light_at_depth / light_at_surface) * 100, 1)
+  return(percent_light)
+}
+
+# Apply to data 
+water_quality_raw %>% 
+  mutate(
+    light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
+  )
+```
+
+# Calculating Error 
+```{r}
+# Create custom function for error 
+error_calc <- function(x){abs(x - lag(x))} 
+
+water_quality_raw %>% 
+  group_by(depth) %>% 
+  mutate(across(temp_c:chla_ugl, error_calc)) %>% 
+  filter(sample_type %in% c("rep", "dup")) %>% 
+  rename_at(vars(-lake_name, -depth, -sample_type), funs(paste0(., sep = "_", "error"))) %>% 
+  select(-lake_name, -sample_type)
+```
+
+# Means 
+```{r}
+water_quality_raw %>% 
+  group_by(depth) %>% 
+  summarize(
+    across(temp_c:chla_ugl, mean, na.rm = TRUE))
+```
+
+# Organic Nitrogen 
+```{r}
+# Create function 
+get_orgn <- function(tn_mgL, no3_mgL, nh3_mgL){
+
+    org_n <- tn_mgL - (no3_mgL + nh3_mgL)
+    return(org_n)
+}
+
+# Apply function to df 
+water_quality_raw %>% 
+  mutate(org_n_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
+```
+
+# Sig Figs 
+```{r}
+water_quality_raw %>% 
+  mutate(
+    temp_c = round(temp_c, 2), 
+    do_mgl = round(do_mgl, 2),
+    do_sat_per = round(do_sat_per, 1), 
+    cond_umhos = round(cond_umhos, 1),
+    light_sur_mmol = round(light_sur_mmol, 0),
+    light_dep_mmol = round(light_dep_mmol, 0),
+    ph = round(ph, 1), 
+    alk_mgl = round(alk_mgl, 0),
+    turb_ntu = round(turb_ntu, 1),
+    srp_mgl = round(srp_mgl, 3),
+    tp_mgl = round(tp_mgl, 3),
+    nh3_mgl = round(nh3_mgl, 3),
+    no3_mgl = round(no3_mgl, 3),
+    tn_mgl = round(tn_mgl, 3),
+    chla_ugl = round(chla_ugl, 2),
+    org_n_mgl = round(org_n_mgl, 3),
+    light_level_per = round(light_level_per, 1)
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
