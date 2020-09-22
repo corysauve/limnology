@@ -18,30 +18,14 @@ library(patchwork)
 
 # Import data 
 ```{r}
-water_quality_raw <- read_csv(here("data", "water_quality.csv"))
-plankton_raw <- read_csv(here("data", "plankton.csv"))
-```
-
-# Percent Light Level 
-```{r}
-# Create function
-get_percent_light <- function(light_at_depth, light_at_surface){
-  
-  percent_light <- round((light_at_depth / light_at_surface) * 100, 1)
-  return(percent_light)
-}
-
-# Apply to data 
-water_quality_raw %>% 
-  mutate(
-    light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
-  )
+water_quality_raw <- read_csv(here("data/raw", "water_quality.csv"))
+plankton_raw <- read_csv(here("data/raw", "plankton.csv"))
 ```
 
 # Control for MDLs 
 ```{r}
 # Option A 
-water_quality_raw %>% 
+water_quality_clean <- water_quality_raw %>% 
   mutate(
     srp_mgl = ifelse(srp_mgl <= 0.002, 0.002, srp_mgl),
     tp_mgl = ifelse(tp_mgl <= 0.002, 0.002, tp_mgl),
@@ -51,6 +35,39 @@ water_quality_raw %>%
   )
 ```
 
+# Calculating Error 
+```{r}
+# Create custom function for error 
+error_calc <- function(x){abs(x - lag(x))} 
+
+water_quality_error <- water_quality_clean %>% 
+  group_by(depth) %>% 
+  mutate(across(temp_c:chla_ugl, error_calc)) %>% 
+  filter(sample_type %in% c("rep", "dup")) %>% 
+  rename_at(vars(-lake_name, -depth, -sample_type), funs(paste0(., sep = "_", "error"))) %>% 
+  select(-lake_name, -sample_type)
+```
+
+# Means 
+```{r}
+water_quality_clean <- water_quality_clean %>% 
+  group_by(depth) %>% 
+  summarize(across(temp_c:chla_ugl, mean, na.rm = TRUE))
+```
+
+# Organic Nitrogen 
+```{r}
+# Create function 
+get_orgn <- function(tn_mgL, no3_mgL, nh3_mgL){
+  org_n <- tn_mgL - (no3_mgL + nh3_mgL)
+  return(org_n)
+}
+
+# Apply function to df 
+water_quality_clean <- water_quality_clean %>% 
+  mutate(org_n_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
+```
+
 # Percent Light Level 
 ```{r}
 # Create function
@@ -61,50 +78,46 @@ get_percent_light <- function(light_at_depth, light_at_surface){
 }
 
 # Apply to data 
-water_quality_raw %>% 
+water_quality_clean <- water_quality_clean %>% 
   mutate(
     light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
   )
 ```
 
-# Calculating Error 
+
+# One Percent Light 
 ```{r}
-# Create custom function for error 
-error_calc <- function(x){abs(x - lag(x))} 
+get_one_percent <- function(depths, light){
 
-water_quality_raw %>% 
-  group_by(depth) %>% 
-  mutate(across(temp_c:chla_ugl, error_calc)) %>% 
-  filter(sample_type %in% c("rep", "dup")) %>% 
-  rename_at(vars(-lake_name, -depth, -sample_type), funs(paste0(., sep = "_", "error"))) %>% 
-  select(-lake_name, -sample_type)
-```
+  # Determine surface and one percent light
+  surfaceLight <- light[[1]]
+  onePercent <- surfaceLight * 0.01
 
-# Means 
-```{r}
-water_quality_raw %>% 
-  group_by(depth) %>% 
-  summarize(
-    across(temp_c:chla_ugl, mean, na.rm = TRUE))
-```
+  # Remove zeros and determine length
+  light1 <- light[!light %in% 0]
+  len <- length(light1)
 
-# Organic Nitrogen 
-```{r}
-# Create function 
-get_orgn <- function(tn_mgL, no3_mgL, nh3_mgL){
+  # Make depth vector sample length
+  depths1 <- depths[1:len]
 
-    org_n <- tn_mgL - (no3_mgL + nh3_mgL)
-    return(org_n)
+  # Calculate one percent light level
+  mod <- lm(depths1 ~ log(light1))
+  coef <- coef(mod)
+  int <- coef[1]
+  slope <- coef[2]
+  onePercentLightLevel <- slope * log(onePercent) + int
+
+  return(onePercentLightLevel)
 }
 
-# Apply function to df 
-water_quality_raw %>% 
-  mutate(org_n_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
+water_quality_clean <- water_quality_clean %>% 
+  mutate(one_percent_light = get_one_percent(depth, light_dep_mmol))
 ```
+
 
 # Sig Figs 
 ```{r}
-water_quality_raw %>% 
+water_quality_clean <- water_quality_clean %>% 
   mutate(
     temp_c = round(temp_c, 2), 
     do_mgl = round(do_mgl, 2),
