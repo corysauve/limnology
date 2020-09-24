@@ -1,0 +1,98 @@
+---
+title: "Intro to visualizing lake data in R"
+author: "Cory Sauve"
+date: "9/25/2020"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: yes
+  html_document:
+    number_sections: yes
+    theme: yeti
+    includes:
+      after_body: footer.html
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<style type="text/css">
+
+h1.title {
+  text-align: center;
+  font-weight: bold;
+}
+h4.author {
+  text-align: center;
+}
+h4.date { 
+  text-align: center;
+}
+</style>
+
+\newpage 
+
+# Welcome! 
+
+Welcome to the written part of the workshop on visualizing your University Lake data in R! The goal of this workshop is to give you all the tools you will need to create publication quality figures for your lab reports. Do not worry if you have never heard of R or have never coded before! This workshop was designed under the assumption that this is your *first* time using R. 
+
+With that being said, we will just scratch the surface of the R world. It is my hope that after you complete this workshop you will want to learn more R and it will greatly improve your ability to efficiently work with data in the future. Check you 
+
+# Getting Started 
+
+## Materials You'll Need
+
+## R and RStudio
+
+## Packages 
+
+***
+
+# The Basics of R 
+
+***
+
+# Working with Data in the `tidyverse` 
+
+***
+
+# Visualizing Data with `ggplot2`
+
+***
+
+# On to University Lake 
+
+***
+
+## Preparing the Data 
+
+***
+
+## Making the Water Quality Figures 
+
+***
+
+## Making the Plankton Figures 
+
+***
+
+## Making the Light Figure 
+
+***
+
+# Ok, what's next?
+
+***
+
+# License 
+
+
+
+
+
+
+
+
