@@ -1,0 +1,31 @@
+---
+title: "Limnology Workshop Code Outline"
+author: "Cory Sauve"
+date: "9/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Getting Started 
+
+
+# The Basics of R 
+
+
+# Working with Data
+
+
+# Visualizing Data with ggplot2 
+
+
+# Making the Water Quality Figures 
+
+
+# Making the Plankton Figures 
+
+
+# Making the Light Figures 
+
