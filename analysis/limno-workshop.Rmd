@@ -1,17 +1,15 @@
 ---
-title: "Intro to visualizing lake data in R"
+title: "Intro to Visualizing Lake Data in R"
 author: "Cory Sauve"
 date: "9/25/2020"
 output:
+  html_document:
+    number_sections: yes
+    theme: yeti
   pdf_document:
     toc: true
     toc_depth: 3
     number_sections: yes
-  html_document:
-    number_sections: yes
-    theme: yeti
-    includes:
-      after_body: footer.html
   word_document: default
 ---
 
@@ -37,22 +35,212 @@ h4.date {
 
 # Welcome! 
 
-Welcome to the written part of the workshop on visualizing your University Lake data in R! The goal of this workshop is to give you all the tools you will need to create publication quality figures for your lab reports. Do not worry if you have never heard of R or have never coded before! This workshop was designed under the assumption that this is your *first* time using R. 
+<br>
 
-With that being said, we will just scratch the surface of the R world. It is my hope that after you complete this workshop you will want to learn more R and it will greatly improve your ability to efficiently work with data in the future. Check you 
+Welcome to the written part of visualizing lake data in R! Everything covered in the lecture videos is covered here in much more detail. You'll also find information of how to setup and customize R and RStudio, getting help, and additional R resources. 
+
+The goal of this workshop is to give you the tools you'll need to create publication quality figures for your lab reports. You will not know everything about R after you complete the workshop, but you will learn the *essential* functions required of typical data analysis. As such, this workshop focuses on working with tabular data, or data that are organized in rows and columns (think a nicely organized Excel spreadsheet). The reason for this is twofold. For one, your University Lake data are organized in this way. The other being that in your time in the environmental field, you will likely spend most of your time working with data in this form.
+
+One last thing. The core assumption of this workshop is that you have *never* seen R before. So if you are new to programming, don't worry! This workshop was designed with you in mind. 
+
+<br>
 
 # Getting Started 
 
-## Materials You'll Need
+## Materials You'll Need 
 
-## R and RStudio
+* **Computer**  
+  + Ideally one that runs Windows, macOS, or Linux. You can make a Chromebook work for what we're doing but will take a little more effort. 
+  + Ideally *your* computer. It's helpful to know that your files will be in the same place you left them (and to know R and R package versions will be the same). This isn't 100% necessary - and you will be able to finish everything regardless - but working on your own computer is definitely a proactive approach to avoid issues down the road. 
+
+* **Code Template & Example Data** 
+  + Both are found on [**Canvas**](https://canvas.iu.edu/lms-prd/gateway) and [**Github**](https://github.com/corysauve/limnology). 
+      + There are two datasets that we'll be using: `water-chemisty.csv` and `plankton.csv`.
+  + The code file you'll want is `limno-workshop-code.Rmd`. 
+  
+* **Video lectures**
+  + All lecture videos are hosted on my [**YouTube channel**](https://youtube.com/channel/UCArEdGNXQExGi0tglvgB93Q).
+  
+* **Written lectures**
+  + Found on [**Canvas**](https://canvas.iu.edu/lms-prd/gateway) and [**Github**](https://github.com/corysauve/limnology).
+  + The `limno-workshop.pdf` contains everything covered in the video lectures, plus more.
+
+<br>
+
+## Install R and RStudio
+
+We will use the open-source programming language [**R**](https://www.r-project.org/) for this workshop. It's free (Yay!) and relatively easy to install on your own computer. We'll use [**RStudio**](https://rstudio.com/) to access R. You have several options to set up R and RStudio on your computer:
+
+* **R & R Studio on your computer (recommended)**
+  + R can be installed from [**CRAN**](https://cran.r-project.org/), the Comprehensive R Archive Network. 
+      + Put 
+      + the 
+      + steps 
+      + here
+      + If you are using macOS, you'll also need to install XQuartz [**here**](https://www.xquartz.org/).
+    
+  + RStudio can be installed from [**RStudio**](https://rstudio.com/products/rstudio/download/):
+      + Put 
+      + the 
+      + steps 
+      + here
+  
+  + If you already have R and/or R Studio installed, I **highly recommend** you re-install the most recent version of both and update all CRAN packages with the following command: 
+    ```{r update-pkgs, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+    update.packages(ask = FALSE, checkBuilt = TRUE)
+    ```
+  
+* **RStudio Cloud**
+  + While R is free and widely supported, sometimes it can be a headache to install and configure. If you would like to avoid these potential headaches (or have a Chromebook and/or not using you own computer), [**RStudio Cloud**](https://rstudio.cloud) allows you to run a full instance of RStudio in your browser. There's a generous free tier and it allows you to do everything without installing anything! All you have to do is set up a free account [**here**](https://rstudio.cloud/plans/free).  
+  
+<br> 
 
 ## Packages 
+ 
+R has thousands of packages that enhance the capabilities of R. You'll need to install several packages:     
+
+* [**tidyverse**](https://www.tidyverse.org/): A collection of R packages for data science
+* [**here**](https://here.r-lib.org/): To help with file paths 
+* [**rmarkdown**](https://rmarkdown.rstudio.com/index.html): To create reproducible analyses
+* [**palmerpenguins**](https://allisonhorst.github.io/palmerpenguins/): An example dataset
+  
+  **How to install:**
+
+  1. **Open RStudio**. You should see something that looks like this: 
+  
+      ![](C:/Users/csauve/Desktop/code/limnology/reports/img/r-studio-homepage.png)
+  
+  2. **Install packages**. On the command line (`>`) on the left of the screen, type the following commands:
+    ```{r install-pkgs, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+    install.packages("rmarkdown", dependenices = TRUE)
+    install.packages("tidyverse", dependencies = TRUE)
+    install.packages("here", dependencies = TRUE)
+    install.packages("palmerpenguins")
+    ```
+   
+  + **Optional packages**: You may want to eventually knit R Markdown documents to PDF. To do so install the `tinytex` by:
+    ```{r install-tinytex, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
+    install.packages("tinytex")
+    
+    # Once installed, run:
+    tinytex::install_tinytex()
+    ```
+  
+3. **Congrats, you made it!** That's everything you'll need to get starting programming with R.
+
+<br>
+
+## Getting Used to RStudio
+
+- Setting up for success
+- Layout (3 panes)
+- Appearance 
+- Creating New files 
+- Shortcuts 
+
+## Some best practices  
+
+
+## Creating a Working directory 
+
+## RStudio Projects 
+
+## Using R Markdown 
 
 ***
 
-# The Basics of R 
+# A Data Analysis Crash Course
 
+Before we take a look at the University Lake data, let's get some practice working with data in R. We're going to use the `palmerpenguins` package we installed earlier. This package contains two datasets with size measurements for three penguin species in the Palmer Archipelago, Antarctica. 
+
+## Required libraries 
+
+You'll need to load several package before we move on to analyzing the penguin data. In R, the `library()` function loads packages into your current session. So let's load the packages we'll need:
+```{r pens-pkgs, echo=TRUE, eval=TRUE}
+library(tidyverse)
+library(palmerpenguins)
+```
+
+## Taking a look at the data 
+
+Normally we would have to load data separately. However, the penguins data we are after is actually automatically loaded into our environment when we loaded the package So we'll go over loading data from files when we move on to the University Lake data. 
+
+So the next step in a typical data analysis workflow is to take a look at the data you are working with. Now it is important to remember that data can be large. The term "big data" gets thrown around a lot in the data science world. A simple definition that I like is that if the computer you are using crashes when you try to work with your dataset, then your data are indeed large. Obviously this means that "big data" is a highly subjective term. 
+
+Because of this, it's helpful to inspect your data without committing all of it to your computers memory. R gives you a few options to do that. Let's first look at the structure that the penguin data are in. We can do so by calling the `glimpse()` function from the `dplyr` package that came installed with the `tidyverse`:
+```{r pens-glimpse, echo=TRUE, eval=TRUE}
+glimpse(penguins)
+```
+We can see that our dataset is organized in row and columns containing size measurements for several penguin species. The handy thing about `glimpse()` is that it also tells you the dimensions of the dataset (344 rows X 8 columns) and lists all of the data types for each column.
+
+We can also view *all* of the data using the `View()` function. When you call `View()`, it will open a new tab in your window where you can view the entire dataset. 
+```{r pens-view, echo=TRUE, eval=FALSE}
+View(penguins)
+```
+
+Another useful set of functions to get a quick look at your data are the `head()` and `tail()` functions. These allow you to look at the first and last rows that are in your dataset. Let's take a look at the first rows in the *penguins* dataset:
+```{r pens-head}
+head(penguins)
+```
+
+You can customize the number of rows that are returned using the `n = ` argument within `head()` or `tail()`. For example, let's say we wanted to see the last 10 rows:
+```{r pens-tails}
+tail(penguins, n = 10)
+```
+
+## Counting things 
+
+From our initial look at the data, we can see that each row represents a unique set of measurements for a specific penguin. Now we do have some categorical variables at our disposal. It's often helpful to count the number of times a categorical variable exists within a dataset. 
+
+Say we are interested in seeing the number of penguins per species. We can do this very quickly using the `count()` function. Here we will link the dataframe using a pipe (` %>% `). What a pipe allows you to do is link functions in a linear order, rather than having to nest functions.
+
+We'll first call the dataframe, insert a pipe, and then call the function we want:
+```{r pen-count}
+penguins %>% 
+  count(species)
+```
+
+Now we know that there are three penguin species in the dataframe and *Adelie* is the most abundant. Now we can quickly add onto our pipe and sort these data from largets to smallest using the `arrange()` function: 
+```{r pen-arrange}
+penguins %>% 
+  count(species) %>% 
+  arrange(desc(n))
+```
+
+# Summarizing the penguin measurements 
+
+Another common 
+```{pen-filter}
+
+```
+
+select()
+filter()
+mutate()
+
+group_by()
+summarize()
+
+across()
+
+mean()
+median()
+min()
+max()
+sd()
+
+round()
+
+left_join()
+pivot_longer()
+pivot_wider()
+
+ifelse()
+
+
+
+
+## 
 ***
 
 # Working with Data in the `tidyverse` 
