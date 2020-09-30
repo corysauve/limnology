@@ -45,7 +45,7 @@ The goal of this workshop is to give you the tools you'll need to create publica
 
 ## How to get the most out this workshop (while minimizing pain)?
 
-Let's get something out of the way now. Learning a programming language can be painful. Programming in general can be painful. You might be thinking you took Limnology so you can be on a boat, not staring at a screen. I understand, trust me. I believe there are some universal truths in the environmental field. One being that field work is always better than computer work. However, all of the hours you spent in the field or lab mean nothing if you cannot effectively analyze and communicate your results. And thus we arrive back to staring at a screen, the scientific method making you learn to code. 
+Let's get something out of the way now. Learning a programming language can be painful. Programming in general can be painful. You might be thinking you took Limnology so you can be on a boat, not staring at a screen. I understand, trust me. I believe there are some universal truths in the environmental field. One being that field work is always better than computer work. However, all of the hours you spent in the field or lab mean nothing if you cannot effectively analyze and communicate your results. And thus we arrive back to staring at a screen, learning to code.
 
 But don't worry, this workshop was designed with you in mind! We're not out to become fluent in R by the end of this! Instead, we're going to cover a core group of tools that will allow you to import, manipulate, and visualize your data as efficiently as possible. Now, if you come out of this wanting to get even better at R, check out the **Ok, what's next?** section on some resources to becoming an R ninja. 
 
@@ -148,6 +148,7 @@ R has thousands of packages that enhance the capabilities of R. You'll need to i
 
 ## Creating a Working directory 
 
+
 ## RStudio Projects 
 
 ## Using R Markdown 
@@ -155,6 +156,123 @@ R has thousands of packages that enhance the capabilities of R. You'll need to i
 ***
 
 # A Data Analysis Crash Course
+
+## First, some basics
+
+### Make 
+
+### R as a calculator 
+
+At its most basic, R is a calculator:
+```{r intro-calculator}
+1 + 9 
+1 / 200 * 30
+(59 + 73 + 2) / 3 
+3 ^ 4
+```
+R also supports all the basic log and trig functions you can find on a scientific calculator...
+```{r intro-log-trig, warning = FALSE, message = FALSE}
+sqrt(2)
+sin(pi / 2)
+log(4) # natural log
+log10(4) # common log
+```
+Note that we used functions here. R as a bunch of built-in functions for you to use. We can also define our own. If you want to see what a function does, simply put a question mark in front of it. Any information about the function will show up in the bottom right under the **Help** tab.
+```{r intro-help}
+?log()
+```
+
+### Objects in R
+
+Essentially everything we create in R is an object. Objects can be anything from numbers to figures to dataframes. To create an object, you can use the `<-` operator:
+```{r intro-object}
+x <- 3 * 4
+```
+
+Note that if you run this code chunk, nothing shows up. However, if you look under the **Environment** tab (top right) there should be a value for the object `x`. To view the object, we can simply call the object name directly:
+```{r intro-object-call}
+x
+```
+We can assign more than numbers to objects. In this case, we can make a character string:
+```{r intro-object-string}
+my_string <- "R is kinda cool"
+```
+
+We can do math with objects:
+```{r intro-object-math}
+x * 2
+```
+Or we can do math with multiple objects
+```{r intro-objects-multi}
+one_fish <- 1
+two_fish <- 2
+one_fish + two_fish
+```
+And finally, we can make new objects from other objects
+```{r intro-objects-new}
+three_fish <- one_fish + two_fish
+three_fish
+```
+### Combining values with `c()`
+
+Combining values into a vector is an essential function in R.  Vectors are the building block of dataframes and R is very good at doing vector math.  As you get more advanced in R, vectors will constitute the majority of you analysis.  
+
+To create a vector, we can use the `c()` function.  We won't go over every data type that a vector can support, but you'll mostly come across vectors with numeric or character data. Let's make a vector of numeric values between 1-10, called `a_numeric_vector`: 
+```{r intro-vectors}
+a_numeric_vector <- c(1:10)
+a_numeric_vector
+```
+
+We can also easily create a character vector using `c()`:
+```{r intro-char-vectors}
+a_char_vector <- c("this", "is", "a", "character", "vector")
+a_char_vector 
+```
+
+### Creating and Importing dataframes 
+
+Most of the data you will come across in the environmental field will be data stored in things like Excel spreadsheets and comma-separated values files (ie. csv). R allows you to import a variety of file types with ease. You may also run into times where it's just easier to create a dataframe directly in R. We'll cover how to do both. 
+
+We'll go over how to import data in two forms: Excel (.xlsx) and comma-separate values file (.csv). To import a .csv file, we can use the `read_csv()` function in the `readr` package. `readr` already comes with the `tidyverse` library so no need to install anything else! Remember to use the `here` package to help with file paths:
+```{r intro-read-csv, eval=FALSE}
+my_dataframe <- read_csv(here("folder/with/the/data", "my_awesome_data.csv"))
+```
+
+If you want to import Excel files, you'll need to install the pacakge `readxl`. Remember that packages are installed with `install.packages()` and to only install a package once (hint: do it directly on the command line)
+```{r intro-readxl, eval=FALSE}
+install.packages("readxl", dependencies = TRUE)
+```
+
+After `readxll` is installed, a similar strategy to `read_csv` can be employed with `read_excel()`:
+```{r intro-readxl-use, eval=FALSE}
+my_dataframe <- readxl::read_excel(here("folder/with/the/data", "my_awesome_excel_data.xlsx"))
+```
+
+### The Mighty %>%
+
+Using a pipe (`%>%`) in R is an incredibly powerful tool. The `%>%` allows you to write code that reads "left to right" instead of from "inside out".  Technically, the `%>%` is found in the `magrittr` package but is ready for use from the `tidyverse`
+
+To show how pipes work, let's look at a comparison on how code looks without and with a pipe.  Let's first create a vector of random values and call it x.  Note the use of the `c()` (combine) function here:
+```{r intro-pipe, warning = FALSE, message = FALSE}
+x <- c(0.109, 0.359, 0.63, 0.996, 0.515, 0.142, 0.017, 0.829, 0.907)
+```
+
+Now let's say that we want to exponentiation each value in `x`, sum those values, and then round them to a whole number.  The pipe-less way of doing so would look like this:
+```{r intro-no-pipe ,eval = TRUE, echo = TRUE, warning = FALSE, message = FALSE}
+round(sum(exp(x)))
+```
+Using a pipe allows us to take these functions and start a logical progression from left (start) to right (finish)
+```{r pipe-example, eval = TRUE, echo = TRUE, warning = FALSE, message = FALSE}
+x %>% 
+  exp() %>% 
+  sum() %>% 
+  round()
+```
+
+
+
+
+## Penguins!
 
 Before we take a look at the University Lake data, let's get some practice working with data in R. We're going to use the `palmerpenguins` package we installed earlier. This package contains two datasets with size measurements for three penguin species in the Palmer Archipelago, Antarctica. 
 
