@@ -3,15 +3,15 @@ title: "Intro to Visualizing Lake Data in R"
 author: "Cory Sauve"
 date: "9/25/2020"
 output:
-  pdf_document:
-    toc: true
-    toc_depth: 3
-    number_sections: yes
   html_document:
     number_sections: yes
     theme: yeti
     toc: true
     toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: yes
   word_document: default
 ---
 
@@ -79,20 +79,19 @@ But don't worry, this workshop was designed with you in mind! We're not out to b
 We will use the open-source programming language [**R**](https://www.r-project.org/) for this workshop. It's free (Yay!) and relatively easy to install on your own computer. We'll use [**RStudio**](https://rstudio.com/) to access R. You have several options to set up R and RStudio on your computer:
 
 * **R & R Studio on your computer (recommended)**
-  + R can be installed from [**CRAN**](https://cran.r-project.org/), the Comprehensive R Archive Network. 
-      + Put 
-      + the 
-      + steps 
-      + here
+  * R can be installed by:
+      + Go to [**CRAN**](https://cran.r-project.org/), the Comprehensive R Archive Network
+      + Select the `Download R for` link that is appropriate for your computer  
+      + Download the latest release by clicking the corresponding 
+      + Double click on the downloaded file (check `Downloads`). Follow the prompts to install.
       + If you are using macOS, you'll also need to install XQuartz [**here**](https://www.xquartz.org/).
     
-  + RStudio can be installed from [**RStudio**](https://rstudio.com/products/rstudio/download/):
-      + Put 
-      + the 
-      + steps 
-      + here
-  
-  + If you already have R and/or R Studio installed, I **highly recommend** you re-install the most recent version of both and update all CRAN packages with the following command: 
+  * RStudio can be installed by: 
+      + Go to [**RStudio**](https://rstudio.com/products/rstudio/download/)
+      + Click the `Download` button under the free, open-source license of **RStudio Desktop**
+      + Download the file that is appropriate for your computer, open the downloaded file, and follow the prompts. 
+
+  * If you already have R and/or R Studio installed, I **highly recommend** you re-install the most recent version of both and update all CRAN packages with the following command: 
     ```{r update-pkgs, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE}
     update.packages(ask = FALSE, checkBuilt = TRUE)
     ```
