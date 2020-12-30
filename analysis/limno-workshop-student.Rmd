@@ -1,7 +1,7 @@
 ---
 title: "Limnology Workshop Code Outline"
 author: "Cory Sauve"
-date: "9/23/2020"
+date: "10/01/2020"
 output: html_document
 ---
 
@@ -41,6 +41,15 @@ water_chem_raw <- read_csv(here("data", "water_chemistry.csv")) # Change if you 
 plankton_raw <- read_csv(here("data", "plankton.csv"))
 ```
 
+```{r}
+water_chem_raw <- read_csv(here("data", "water_chem_test.csv"))
+```
+
+```{r}
+water_chem_raw <- water_chem_raw %>% rename(light_level_per = light_sur_mmol)
+```
+
+
 ## Working with the water chemistry data 
 
 ### Taking a look 
@@ -55,9 +64,10 @@ water_chem_clean <- water_chem_raw %>%
   mutate(
     srp_mgl = ifelse(srp_mgl <= 0.002, 0.002, srp_mgl),
     tp_mgl = ifelse(tp_mgl <= 0.002, 0.002, tp_mgl),
-    no3_mgl = ifelse(no3_mgl <= 0.009, 0.009, no3_mgl),
-    nh3_mgl = ifelse(nh3_mgl <= 0.015, 0.015, nh3_mgl),
-    tn_mgl = ifelse(tn_mgl <= 0.104, 0.104, tn_mgl)
+    no3_mgl = ifelse(no3_mgl <= 0.008, 0.008, no3_mgl),
+    nh3_mgl = ifelse(nh3_mgl <= 0.014, 0.014, nh3_mgl),
+    tn_mgl = ifelse(tn_mgl <= 0.100, 0.100, tn_mgl),
+    chla_ugl = ifelse(chla_ugl <= 0.5, 0.5, chla_ugl)
   )
 ```
 
@@ -75,6 +85,7 @@ water_chem_error <- water_chem_clean %>%
   ungroup(depth) %>% 
   filter(sample_type %in% c("rep", "dup")) %>% 
   rename_at(vars(-lake_name, -depth, -sample_type), funs(paste0(., sep = "_", "error"))) %>% 
+  select(-lake_name, -sample_type)
 ```
 
 ### Average values 
@@ -83,7 +94,6 @@ water_chem_clean <- water_chem_clean %>%
   group_by(depth) %>% 
   summarize(across(temp_c:chla_ugl, mean, na.rm = TRUE))
 ```
-
 ### Organic Nitrogen 
 ```{r}
 # Create function
@@ -97,52 +107,6 @@ water_chem_clean <- water_chem_clean %>%
   mutate(orgn_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
 ```
 
-### Percent Light Level 
-```{r}
-# Create function
-get_percent_light <- function(light_at_depth, light_at_surface){
-  
-  percent_light <- round((light_at_depth / light_at_surface) * 100, 1)
-  return(percent_light)
-}
-
-# Apply to data 
-water_chem_clean <- water_chem_clean %>% 
-  mutate(
-    light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
-  )
-```
-
-### One Percent Light 
-```{r}
-# Create function
-get_one_percent <- function(depths, light){
-
-  # Determine surface and one percent light
-  surface_light <- light[[1]]
-  one_percent <- surface_light * 0.01
-
-  # Remove zeros and determine length
-  light1 <- light[!light %in% 0]
-  len <- length(light1)
-
-  # Make depth vector sample length
-  depths1 <- depths[1:len]
-
-  # Calculate one percent light level
-  mod <- lm(depths1 ~ log(light1))
-  coef <- coef(mod)
-  int <- coef[1]
-  slope <- coef[2]
-  one_percent_light_level <- slope * log(one_percent) + int
-
-  return(one_percent_light_level)
-}
-
-# Apply to data 
-one_percent_light <- round(get_one_percent(water_chem_clean$depth, water_chem_clean$light_dep_mmol), 1)
-```
-
 ### Sig Figs
 ```{r}
 water_chem_clean <- water_chem_clean %>% 
@@ -151,8 +115,6 @@ water_chem_clean <- water_chem_clean %>%
     do_mgl = round(do_mgl, 2),
     do_sat_per = round(do_sat_per, 1), 
     cond_umhos = round(cond_umhos, 1),
-    light_sur_mmol = round(light_sur_mmol, 0),
-    light_dep_mmol = round(light_dep_mmol, 0),
     ph = round(ph, 1), 
     alk_mgl = round(alk_mgl, 0),
     turb_ntu = round(turb_ntu, 1),
@@ -174,12 +136,7 @@ water_chem_clean <- water_chem_clean %>% left_join(water_chem_error, by = c("dep
 
 ### Secchi 
 ```{r}
-secchi_m <- # Update with your value 
-```
-
-### Bottom of Epilimnion
-```{r}
-bottom_of_epi <- # Update with your value 
+secchi_m <- 3.4
 ```
 
 ## Working with the plankton data 
@@ -233,10 +190,79 @@ phyts <- plankton_summary %>%
 zoops <- plankton_summary %>% 
   filter(!taxa %in% c("Dolichospermum", "Aphanizomenon", "Microcystis", "Ceratium")) %>% 
   rename(lower_bound = min, upper_bound = max)
-
 ```
  
 ## Making the Water Chemistry Figures 
+
+```{r}
+water_chem_clean %>% 
+  ggplot(aes(x = light_level_per, y = depth)) +
+  geom_point() +
+  geom_path() +
+  coord_cartesian(xlim = c(0.1, 100), clip = "off") +
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_log10(
+    name = "Light Transmittance (%)",
+    breaks = c(0.1, 1, 10, 100),
+    labels = c("0.01", "1", "10", "100")
+  ) 
+```
+
+```{r}
+one_percent_light <- 3.2
+```
+
+### Bottom of Epilimnion
+```{r}
+bottom_of_epi <- 2.1 # Change with your estimate 
+```
+
+
+```{r}
+water_chem_clean %>% 
+  ggplot(aes(x = temp_c, y = depth)) +
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75) +
+  geom_errorbarh(aes(y = depth, xmin = temp_c - temp_c_error, xmax = temp_c + temp_c_error), height = 0.1) +
+  geom_segment(aes(x = 15, y = secchi_m, xend = 20, yend = secchi_m), size = 1, linetype = "dashed") +
+  geom_text(aes(x = 17.5, y = 3.0), label = "Secchi depth (0.75m)", size = 3) + # ADJUST Y VALUE
+  coord_cartesian(xlim = c(8, 30)) + # ADJUST HERE FOR MIN/MAX VALUES
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_continuous(name = "Temperature (°C)")
+```
+```{r}
+ water_chem_clean %>% 
+  ggplot(aes(x = do_mgl, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = do_mgl - do_mgl_error, xmax = do_mgl + do_mgl_error), height = 0.1) +
+  geom_text(aes(x = 8, y = 2.5), label = "1% Light Level (2.1 m)", size = 3) +
+  geom_segment(aes(x = 6, y = one_percent_light, xend = 10, yend = one_percent_light), size = 1, linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 12)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "Dissolved Oxygen (mg/L)", breaks = seq(0, 16, 4))
+```
+
+```{r}
+water_chem_clean %>% 
+  ggplot(aes(x = turb_ntu, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  coord_cartesian(xlim = c(0, 50)) +
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_continuous(name = "Turbidity (NTU)", breaks = seq(0, 50, 10)) 
+```
+```{r}
+water_chem_clean %>% 
+  ggplot(aes(x = do_sat_per, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = do_sat_per - do_sat_per_error, xmax = do_sat_per + do_sat_per_error), height = 0.1) +
+  coord_cartesian(xlim = c(0, 125)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "D.O. Saturation (%)", breaks = seq(0, 200, 40)) 
+```
+
 
 ### Figure 1 - Mapping the data 
 ```{r}

@@ -1,7 +1,7 @@
 ---
-title: "all_code"
+title: "Limnology Workshop Code Template"
 author: "Cory Sauve"
-date: "9/18/2020"
+date: "9/29/2020"
 output: html_document
 ---
 
@@ -9,38 +9,31 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Setup
+# On to University Lake 
 
-## Required libraries 
-```{r libraries}
+## Required Libraries 
+```{r load-pkgs}
 library(tidyverse)
 library(here)
 library(patchwork)
 ```
 
-<<<<<<< HEAD
-## Import data 
+## Import data
 ```{r import-data}
-water_quality_raw <- read_csv(here("data", "water_quality.csv"))
+water_chem_raw <- read_csv(here("data", "water_chemistry.csv")) # Change if you named things differently 
 plankton_raw <- read_csv(here("data", "plankton.csv"))
 ```
 
-# WQ Data 
+## Working with the water chemistry data 
 
-## Control for MDLs 
-```{r mdls}
-=======
-# Import data 
-```{r}
-water_quality_raw <- read_csv(here("data/raw", "water_quality.csv"))
-plankton_raw <- read_csv(here("data/raw", "plankton.csv"))
+### Taking a look 
+```{r data-glimpse}
+glimpse(water_chem_raw)
 ```
-
-# Control for MDLs 
-```{r}
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
-# Option A 
-water_quality_clean <- water_quality_raw %>% 
+###  Control for MDL's 
+```{r mdls}
+# Change MDL values with your values 
+water_chem_clean <- water_chem_raw %>% 
   mutate(
     srp_mgl = ifelse(srp_mgl <= 0.002, 0.002, srp_mgl),
     tp_mgl = ifelse(tp_mgl <= 0.002, 0.002, tp_mgl),
@@ -50,19 +43,15 @@ water_quality_clean <- water_quality_raw %>%
   )
 ```
 
-<<<<<<< HEAD
-## Calculating Error 
-```{r error-vals}
-=======
-# Calculating Error 
-```{r}
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
-# Create custom function for error 
+### Calculating Error 
+```{r calc-error}
+# Create function
 error_calc <- function(x){
   abs(x - lag(x))
 } 
 
-water_quality_error <- water_quality_clean %>% 
+# Apply function to data 
+water_chem_error <- water_chem_clean %>% 
   group_by(depth) %>% 
   mutate(across(temp_c:chla_ugl, error_calc)) %>% 
   ungroup(depth) %>% 
@@ -71,125 +60,43 @@ water_quality_error <- water_quality_clean %>%
   select(-lake_name, -sample_type)
 ```
 
-<<<<<<< HEAD
-## Means 
-```{r means}
-=======
-# Means 
-```{r}
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
-water_quality_clean <- water_quality_clean %>% 
+### Average values 
+```{r avg-values}
+water_chem_clean <- water_chem_clean %>% 
   group_by(depth) %>% 
   summarize(across(temp_c:chla_ugl, mean, na.rm = TRUE))
 ```
 
-## Organic Nitrogen 
-```{r org-n}
-# Create function 
+### Organic Nitrogen 
+```{r orgn}
+# Create function
 get_orgn <- function(tn_mgL, no3_mgL, nh3_mgL){
-<<<<<<< HEAD
     org_n <- tn_mgL - (no3_mgL + nh3_mgL)
     return(org_n)
-=======
-  org_n <- tn_mgL - (no3_mgL + nh3_mgL)
-  return(org_n)
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
 }
 
 # Apply function to df 
-water_quality_clean <- water_quality_clean %>% 
-  mutate(org_n_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
+water_chem_clean <- water_chem_clean %>% 
+  mutate(orgn_mgl = round(get_orgn(tn_mgl, no3_mgl, nh3_mgl), 3))
 ```
 
-<<<<<<< HEAD
-## Percent Light Level 
-```{r percent-light}
-# Create function
-get_percent_light <- function(light_at_depth, light_at_surface){
-=======
-# Percent Light Level 
-```{r}
+### Percent Light Level 
+```{r per-light}
 # Create function
 get_percent_light <- function(light_at_depth, light_at_surface){
   
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
   percent_light <- round((light_at_depth / light_at_surface) * 100, 1)
   return(percent_light)
 }
 
 # Apply to data 
-water_quality_clean <- water_quality_clean %>% 
+water_chem_clean <- water_chem_clean %>% 
   mutate(
     light_level_per = get_percent_light(light_dep_mmol, light_sur_mmol)
   )
 ```
 
-<<<<<<< HEAD
-## Sig Figs 
-```{r sig-figs}
-=======
-
-# One Percent Light 
-```{r}
-get_one_percent <- function(depths, light){
-
-  # Determine surface and one percent light
-  surfaceLight <- light[[1]]
-  onePercent <- surfaceLight * 0.01
-
-  # Remove zeros and determine length
-  light1 <- light[!light %in% 0]
-  len <- length(light1)
-
-  # Make depth vector sample length
-  depths1 <- depths[1:len]
-
-  # Calculate one percent light level
-  mod <- lm(depths1 ~ log(light1))
-  coef <- coef(mod)
-  int <- coef[1]
-  slope <- coef[2]
-  onePercentLightLevel <- slope * log(onePercent) + int
-
-  return(onePercentLightLevel)
-}
-
-water_quality_clean <- water_quality_clean %>% 
-  mutate(one_percent_light = get_one_percent(depth, light_dep_mmol))
-```
-
-
-# Sig Figs 
-```{r}
->>>>>>> b5c208dbd326da4994f376c01564bb18d60ca59a
-water_quality_clean <- water_quality_clean %>% 
-  mutate(
-    temp_c = round(temp_c, 2), 
-    do_mgl = round(do_mgl, 2),
-    do_sat_per = round(do_sat_per, 1), 
-    cond_umhos = round(cond_umhos, 1),
-    light_sur_mmol = round(light_sur_mmol, 0),
-    light_dep_mmol = round(light_dep_mmol, 0),
-    ph = round(ph, 1), 
-    alk_mgl = round(alk_mgl, 0),
-    turb_ntu = round(turb_ntu, 1),
-    srp_mgl = round(srp_mgl, 3),
-    tp_mgl = round(tp_mgl, 3),
-    nh3_mgl = round(nh3_mgl, 3),
-    no3_mgl = round(no3_mgl, 3),
-    tn_mgl = round(tn_mgl, 3),
-    chla_ugl = round(chla_ugl, 2),
-    org_n_mgl = round(org_n_mgl, 3),
-    light_level_per = round(light_level_per, 1)
-  )
-```
-
-## Combine with error values 
-```{r join-error}
-water_quality_clean <- water_quality_clean %>% left_join(water_quality_error, by = c("depth"))
-```
-
-## One Percent Light 
+### One Percent Light 
 ```{r one-per-light}
 # Create function
 get_one_percent <- function(depths, light){
@@ -216,32 +123,64 @@ get_one_percent <- function(depths, light){
 }
 
 # Apply to data 
-one_percent_light <- round(get_one_percent(water_quality_clean$depth, water_quality_clean$light_dep_mmol), 1)
+one_percent_light <- round(get_one_percent(water_chem_clean$depth, water_chem_clean$light_dep_mmol), 1)
 ```
 
-## Secchi 
+### Sig Figs
+```{r sig-figs}
+water_chem_clean <- water_chem_clean %>% 
+  mutate(
+    temp_c = round(temp_c, 2), 
+    do_mgl = round(do_mgl, 2),
+    do_sat_per = round(do_sat_per, 1), 
+    cond_umhos = round(cond_umhos, 1),
+    light_sur_mmol = round(light_sur_mmol, 0),
+    light_dep_mmol = round(light_dep_mmol, 0),
+    ph = round(ph, 1), 
+    alk_mgl = round(alk_mgl, 0),
+    turb_ntu = round(turb_ntu, 1),
+    srp_mgl = round(srp_mgl, 3),
+    tp_mgl = round(tp_mgl, 3),
+    nh3_mgl = round(nh3_mgl, 3),
+    no3_mgl = round(no3_mgl, 3),
+    tn_mgl = round(tn_mgl, 3),
+    chla_ugl = round(chla_ugl, 2),
+    orgn_mgl = round(orgn_mgl, 3),
+    light_level_per = round(light_level_per, 1)
+  )
+```
+
+### Combining with error 
+```{r combine}
+water_chem_clean <- water_chem_clean %>% left_join(water_chem_error, by = c("depth"))
+```
+
+### Secchi 
 ```{r secchi}
-secchi_m <- 0.75
+secchi_m <- 0.75 # Update with your value 
 ```
 
-## Bottom of Epi 
-```{r bottom-epi}
-bottom_of_epi <- 1.5
+### Bottom of Epilimnion
+```{r epi-bottom}
+bottom_of_epi <- 1.5 # Update with your value 
 ```
 
-# Plankton Data 
+## Working with the plankton data 
 
-## Define cube root function
+### Taking a look 
+```{r plankton-head}
+head(plankton_raw)
+```
+
+### Defining the cube root function 
 ```{r cube-rt}
-# Define cube root function 
 cube_rt <- function(x){
   x ^ (1/3)
 }
 ```
 
-## Transform raw plankton data 
-```{r plankton-prep}
-# plankton summary
+### Transforming the plankton data 
+```{r plankton-transform}
 plankton_summary <- plankton_raw %>% 
   group_by(depth) %>% 
   summarize(across(ends_with("nul"), list(mean = mean, min = min, max = max), .names = "{col}_{fn}")) %>% 
@@ -258,8 +197,8 @@ plankton_summary <- plankton_raw %>%
   )
 ```
 
-## Phyt data 
-```{r phyt-prep}
+### Phytoplankton data 
+```{r phyt}
 phyts <- plankton_summary %>% 
   filter(taxa %in% c("Dolichospermum", "Aphanizomenon", "Microcystis", "Ceratium")) %>% 
   mutate(
@@ -272,31 +211,70 @@ phyts <- plankton_summary %>%
   select(depth, taxa, mean_rt, upper_bound, lower_bound)
 ```
 
-## Zoop data 
-```{r zoop-prep}
+### Zooplankton data
+```{r zoop}
 zoops <- plankton_summary %>% 
   filter(!taxa %in% c("Dolichospermum", "Aphanizomenon", "Microcystis", "Ceratium")) %>% 
   rename(lower_bound = min, upper_bound = max)
 ```
+ 
+## Making the Water Chemistry Figures 
 
-# Figures 
+```{r}
+head(water_chem_clean)
+```
 
-## Figure 1 - Temp, DO, Turb, DO SAT 
-```{r fig-1}
-# Temp subplot
-p_temp <- water_quality_clean %>% 
+
+### Figure 1 - Mapping the data 
+```{r fig1-data}
+water_chem_clean %>% 
+  ggplot(aes(x = temp_c, y = depth))
+```
+### Figure 1 - Points and Lines 
+```{r fig1-geoms}
+water_chem_clean %>% 
   ggplot(aes(x = temp_c, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75)
+```
+### Figure 1 - Adding error bars 
+```{r fig1-error}
+water_chem_clean %>% 
+  ggplot(aes(x = temp_c, y = depth)) +
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75) +
+  geom_errorbarh(aes(y = depth, xmin = temp_c - temp_c_error, xmax = temp_c + temp_c_error), height = 0.1)
+```
+
+### Figure 1 - Adding annotations 
+```{r fig1-annotate}
+water_chem_clean %>% 
+  ggplot(aes(x = temp_c, y = depth)) +
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75) +
   geom_errorbarh(aes(y = depth, xmin = temp_c - temp_c_error, xmax = temp_c + temp_c_error), height = 0.1) +
-  geom_segment(aes(x = 15.5, y = secchi_m, xend = 19.5, yend = secchi_m), size = 1, linetype = "dashed") +
-  geom_text(aes(x = 17.5, y = 0.15), label = "Secchi depth (0.75 m)", size = 3) +
+  geom_segment(aes(x = 15, y = secchi_m, xend = 20, yend = secchi_m), size = 1, linetype = "dashed") +
+  geom_text(aes(x = 17.5, y = 0.15), label = "Secchi depth (0.75m)", size = 3)
+```
+
+### Figure 1 - Scale and labels 
+```{r fig1-scales}
+p_temp <- water_chem_clean %>% 
+  ggplot(aes(x = temp_c, y = depth)) +
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75) +
+  geom_errorbarh(aes(y = depth, xmin = temp_c - temp_c_error, xmax = temp_c + temp_c_error), height = 0.1) +
+  geom_segment(aes(x = 15, y = secchi_m, xend = 20, yend = secchi_m), size = 1, linetype = "dashed") +
+  geom_text(aes(x = 17.5, y = 0.15), label = "Secchi depth (0.75m)", size = 3) +
   coord_cartesian(xlim = c(9, 26)) +
   scale_y_reverse(name = "Depth (m)") +
   scale_x_continuous(name = "Temperature (°C)")
+```
 
-# DO subplot 
-p_do <- water_quality_clean %>% 
+### Figure 1 - Remaining subplots 
+```{r fig1-remaining}
+# DO subplot
+p_do <- water_chem_clean %>% 
   ggplot(aes(x = do_mgl, y = depth)) +
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
@@ -307,8 +285,8 @@ p_do <- water_quality_clean %>%
   scale_y_reverse(name = "") +
   scale_x_continuous(name = "Dissolved Oxygen (mg/L)", breaks = seq(0, 16, 4))
 
-# Turb subplot 
-p_turb <- water_quality_clean %>% 
+# Turbidity subplot 
+p_turb <- water_chem_clean %>% 
   ggplot(aes(x = turb_ntu, y = depth)) +
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
@@ -318,7 +296,7 @@ p_turb <- water_quality_clean %>%
   scale_x_continuous(name = "Turbidity (NTU)", breaks = seq(10, 40, 5))
 
 # DO SAT subplot 
-p_dosat <- water_quality_clean %>% 
+p_dosat <- water_chem_clean %>% 
   ggplot(aes(x = do_sat_per, y = depth)) +
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
@@ -326,164 +304,76 @@ p_dosat <- water_quality_clean %>%
   coord_cartesian(xlim = c(0, 200)) +
   scale_y_reverse(name = "") +
   scale_x_continuous(name = "D.O. Saturation (%)", breaks = seq(0, 200, 40)) 
+```
 
-# Combine subplots 
-plot1 <- (p_temp | p_do) / (p_turb | p_dosat) + 
+### Figure 1 - Combining and adjusting 
+```{r fig1-combine}
+plot1 <- (p_temp | p_do) / (p_turb | p_dosat) +
   plot_annotation(tag_levels = "A", tag_suffix = ".") &
   theme_bw() &
   theme(
-    panel.grid = element_blank(), 
+    panel.grid = element_blank(),
     panel.border = element_rect(color = "black"),
     axis.text = element_text(color = "black"),
     axis.ticks = element_line(color = "black")
   )
-
-# Save plot 
-ggsave(plot1, file = "figure1.png", device = "png", type = "cairo")
 ```
 
-# Figure 2 - Temp, Alk, Cond, pH
-```{r fig-2}
-p_alk <- water_quality_clean %>% 
-  ggplot(aes(x = alk_mgl, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = alk_mgl - alk_mgl_error, xmax = alk_mgl + alk_mgl_error), height = 0.1) +
-  geom_text(aes(x = 153, y = 1.5), label = "1% Light Level (2.1 m)", size = 3) +
-  geom_segment(aes(x = 140, y = one_percent_light, xend = 170, yend = one_percent_light), size = 1, linetype = "dotted") +
-  coord_cartesian(xlim = c(80, 220)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = expression("Alkalinity (mg CaCO"[3]*"/L)"))
-
-p_cond <- water_quality_clean %>% 
-  ggplot(aes(x = cond_umhos, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = cond_umhos - cond_umhos_error, xmax = cond_umhos + cond_umhos_error), height = 0.1) +
-  coord_cartesian(xlim = c(280, 400)) +
-  scale_y_reverse(name = "Depth (m)") +
-  scale_x_continuous(name = "Conductivity (μmhos/cm)", breaks = seq(280, 400, 40))
-
-p_ph <- water_quality_clean %>% 
-  ggplot(aes(x = ph, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = ph - ph_error, xmax = ph + ph_error), height = 0.1) +
-  coord_cartesian(xlim = c(6, 9)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = "pH", breaks = seq(6, 9, 0.5))
-
-plot2 <- (p_temp | p_alk) / (p_cond | p_ph) + 
-  plot_annotation(tag_levels = "A", tag_suffix = ".") &
-  theme_bw() &
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(color = "black"),
-        axis.text = element_text(color = "black"),
-        axis.ticks = element_line(color = "black"))
-
-ggsave(plot2, file = "figure2.png", device = "png", type = "cairo")
+### Figure 1 - Saving
+```{r fig1-save}
+ggsave(plot1, file = "figure1.png", device = "png", type = "cairo", width = 7, height = 7)
 ```
 
-# Figure 3 - Temp, NH3, Org-N, NO3
-```{r fig-3}
-p_nh3 <- water_quality_clean %>% 
-  ggplot(aes(x = nh3_mgl, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = nh3_mgl - nh3_mgl_error, xmax = nh3_mgl + nh3_mgl_error), height = 0.2) +
-  geom_text(aes(x = 8, y = 1.5), label = "1% Light Level (2.1 m)", size = 3) +
-  geom_segment(aes(x = 6, y = one_percent_light, xend = 10, yend = one_percent_light), size = 1, linetype = "dotted") +
-  coord_cartesian(xlim = c(0.0, 2.5)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = expression('NH'['3']*'-N (mg/L)'), breaks = seq(0, 2.5, .5))
+### Making Figures 2-5
 
-p_orgn <- water_quality_clean %>% 
-  ggplot(aes(x = org_n_mgl, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  coord_cartesian(xlim = c(0.0, 1.25)) +
-  scale_y_reverse(name = "Depth (m)") +
-  scale_x_continuous(name = "Org-N (mg/L)", breaks = seq(0.0, 1.25, .25))
+**LOOK AT THE END OF THIS DOCUMENT FOR TEMPLATES FOR FIGURES 2-5**
 
-p_no3 <- water_quality_clean %>% 
-  ggplot(aes(x = no3_mgl, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = no3_mgl - no3_mgl_error, xmax = no3_mgl + no3_mgl_error), height = 0.2) +
-  coord_cartesian(xlim = c(0.005, 0.02)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = expression('NO'['3']*'-N (mg/L)'), breaks = seq(0, 0.02, 0.005))
+## Making the Plankton Figures 
 
-plot3 <- (p_temp | p_nh3) / (p_orgn | p_no3) + 
-  plot_annotation(tag_levels = "A", tag_suffix = ".") &
-  theme_bw() &
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(color = "black"),
-        axis.text = element_text(color = "black"),
-        axis.ticks = element_line(color = "black"))
-
-ggsave(plot3, file = "figure3.png", device = "png", type = "cairo")
+### Figure 6 - Filtering 
+```{r fig6-filter}
+phyts %>% 
+  filter(taxa == "Aphanizomenon")
 ```
 
-# Figure 4 - Temp, TP, SRP
-```{r fig-4}
-p_tp <- water_quality_clean %>% 
-  ggplot(aes(x = tp_mgl, y = depth)) +
+### Figure 6 - Mapping the data 
+```{r fig6-data}
+phyts %>% 
+  filter(taxa == "Aphanizomenon") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) 
+```
+### Figure 6 - Points and Lines 
+```{r fig6-points}
+phyts %>% 
+  filter(taxa == "Aphanizomenon") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) +
   geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = tp_mgl - tp_mgl_error, xmax = tp_mgl + tp_mgl_error), height = 0.1) +
-  geom_text(aes(x = 8, y = 1.5), label = "1% Light Level (2.1 m)", size = 3) +
-  geom_segment(aes(x = 6, y = one_percent_light, xend = 10, yend = one_percent_light), size = 1, linetype = "dotted") +
-  coord_cartesian(xlim = c(0, 0.15)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = "TP (mg/L)", breaks = seq(0, 0.15, 0.05))
-
-p_srp <- water_quality_clean %>% 
-  ggplot(aes(x = srp_mgl, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = srp_mgl - srp_mgl_error, xmax = srp_mgl + srp_mgl_error), height = 0.1) +
-  coord_cartesian(xlim = c(0, 0.15)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = "SRP (mg/L)", breaks = seq(0, 0.15, 0.05))
-
-plot4 <- (p_temp | p_tp | p_srp) + 
-  plot_annotation(tag_levels = "A", tag_suffix = ".") &
-  theme_bw() &
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(color = "black"),
-        axis.text = element_text(color = "black"),
-        axis.ticks = element_line(color = "black"))
-
-ggsave(plot4, file = "figure4.png", device = "png", type = "cairo", height = 3.5, width = 8)
+  geom_path(size = 0.75)
 ```
 
-# Figure 5 - Temp, Chla 
-```{r fig-5}
-p_chla <- water_quality_clean %>% 
-  ggplot(aes(x = chla_ugl, y = depth)) +
+### Figure 6 - Error bars 
+```{r fig6-errpr}
+phyts %>% 
+  filter(taxa == "Aphanizomenon") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) +
+  geom_errorbarh(aes(y = depth, xmin = mean_rt - lower_bound, xmax = mean_rt + upper_bound), height = 0.1)
+```
+### Figure 6 - More Lines 
+```{r fig6-lines}
+phyts %>% 
+  filter(taxa == "Aphanizomenon") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) + 
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
-  geom_errorbarh(aes(y = depth, xmin = chla_ugl - chla_ugl_error, xmax = chla_ugl + chla_ugl_error), height = 0.2) +
-  geom_text(aes(x = 37.5, y = 1.5), label = "1% Light Level (2.1 m)", size = 3) +
-  geom_segment(aes(x = 25, y = one_percent_light, xend = 50, yend = one_percent_light), size = 1, linetype = "dotted") +
-  coord_cartesian(xlim = c(0, 75)) +
-  scale_y_reverse(name = "") +
-  scale_x_continuous(name = "Chlorophyll-a (μg/L)", breaks = seq(0, 75, 25))
-
-plot5 <- (p_temp | p_chla)  + 
-  plot_annotation(tag_levels = "A", tag_suffix = ".") &
-  theme_bw() &
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(color = "black"),
-        axis.text = element_text(color = "black"),
-        axis.ticks = element_line(color = "black"))
-
-ggsave(plot5, file = "figure5.png", device = "png", type = "cairo", height = 3.5, width = 5)
+  geom_errorbarh(aes(y = depth, xmin = mean_rt - lower_bound, xmax = mean_rt + upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted")
 ```
 
-# Figure 6 - Phyt
-```{r fig-6}
+### Figure 6 - Scales and labels 
+```{r}
 p_aphani <- phyts %>% 
   filter(taxa == "Aphanizomenon") %>% 
   ggplot(aes(x = mean_rt, y = depth)) + 
@@ -497,9 +387,13 @@ p_aphani <- phyts %>%
   scale_x_continuous(
     name = "",
     breaks = seq(0, 60, 20),
-    labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
-  ggtitle("Aphanizomenon") 
+    labels = c(0, expression(20^3), expression(40^3), expression(60^3))
+  ) +
+  ggtitle("Aphanizomenon")
+```
 
+### Figure 6 - Remaining subplots 
+```{r fig6-subplots}
 p_ceratium <- phyts %>% 
   filter(taxa == "Ceratium") %>% 
   ggplot(aes(x = mean_rt, y = depth)) + 
@@ -549,7 +443,10 @@ p_microcystis <- phyts %>%
     breaks = seq(0, 60, 20),
     labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
   ggtitle("Microcystis") 
+```
 
+### Figure 6 - Combining and adjusting 
+```{r fig6-combine}
 p_phyt <- (p_aphani| p_ceratium | p_dolicho | p_microcystis) +
   plot_annotation(caption = "Density (#/L)") & 
   theme_bw() & 
@@ -560,19 +457,24 @@ p_phyt <- (p_aphani| p_ceratium | p_dolicho | p_microcystis) +
         panel.border = element_rect(color = "black"),
         axis.text = element_text(color = "black"),
         axis.ticks = element_line(color = "black"))
+```
 
+### Figure 6 - Saving 
+```{r fig6-save}
 ggsave(p_phyt, file = "figure6.png", device = "png", type = "cairo", height = 6, width = 10)
 ```
 
-# Figure 7 - Zoop 
-```{r fig-7}
+### Figure 7 - All at once
+```{r fig7-all}
 # Bosmina 
 p_bosmina <- zoops %>% 
   filter(taxa == "Bosmina") %>% 
   ggplot(aes(x = mean, y = depth)) +
-  geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
+  geom_point(x = 1.5) + 
+  geom_path(x = 0.75) + 
   geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
   coord_cartesian(xlim = c(0, 60)) +
   scale_y_reverse(name = "Depth (m)") +
   scale_x_continuous(name = "") +
@@ -594,6 +496,8 @@ p_calanoid <- zoops %>%
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
   geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
   coord_cartesian(xlim = c(0, 60)) +
   scale_y_reverse(name = "") +
   scale_x_continuous(name = "") +
@@ -615,6 +519,8 @@ p_cyclopoid <- zoops %>%
   geom_point(size = 1.5) + 
   geom_path(size = 0.75) + 
   geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
   coord_cartesian(xlim = c(0, 60)) +
   scale_y_reverse(name = "") +
   scale_x_continuous(name = "") +
@@ -664,18 +570,73 @@ p_zoop <- (p_bosmina | p_calanoid | p_cyclopoid | p_nauplii) +
 ggsave(p_zoop, file = "figure7.png", device = "png", type = "cairo", height = 6, width = 10)
 ```
 
-# Figure 8 - Light 
-```{r fig-8}
-p_light <- water_quality_clean %>% 
+## Making the Light Figure 
+
+### Figure 8 - Data, Points, and Lines 
+```{r fig8-data}
+water_chem_clean %>% 
   ggplot(aes(x = light_level_per, y = depth)) +
   geom_point(size = 1.5) + 
-  geom_path(size = 0.75) + 
-  coord_cartesian(xlim = c(0.1, 100), clip = 'off') +
+  geom_path(size = 0.75) 
+```
+
+### Figure 8 - Scales and such
+```{r fig8-scales}
+water_chem_clean %>% 
+  ggplot(aes(x = light_level_per, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) +
+  coord_cartesian(xlim = c(0.1, 100), clip = "off") +
   scale_y_reverse(name = "Depth (m)") +
-  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100")) +
+  scale_x_log10(
+    name = "Light Transmittance (%)",
+    breaks = c(0.1, 1, 10, 100),
+    labels = c("0.01", "1", "10", "100")
+  ) 
+```
+
+### Figure 8 - Annotatations and arrows 
+```{r fig8-annoate}
+water_chem_clean %>% 
+  ggplot(aes(x = light_level_per, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) +
+  coord_cartesian(xlim = c(0.1, 100), clip = "off") +
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_log10(
+    name = "Light Transmittance (%)",
+    breaks = c(0.1, 1, 10, 100),
+    labels = c("0.01", "1", "10", "100")
+  ) +
   annotation_logticks(sides = "b") +
-  geom_label(label= expression('Z'['1%']*' = 2.1m'), aes(x = 3.1, y = 2.75),
-  label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill="white") +
+  geom_label(
+    label = expression('Z'['1%']*' = 2.1m'), aes(x = 3.0, y = 2.75),
+    label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill = "white"
+  ) +
+  geom_segment(
+    aes(x = 1.15, xend = 1.7, y = 2.1, yend = 2.7),
+    arrow = arrow(ends = "first", type = "open", length = unit(0.25, "cm"))
+  )
+```
+
+### Figure 8 - Themes
+```{r fig8-themes}
+p_light <- water_chem_clean %>% 
+  ggplot(aes(x = light_level_per, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) +
+  coord_cartesian(xlim = c(0.1, 100), clip = "off") +
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_log10(
+    name = "Light Transmittance (%)",
+    breaks = c(0.1, 1, 10, 100),
+    labels = c("0.01", "1", "10", "100")
+  ) +
+  annotation_logticks(sides = "b") +
+  geom_label(
+    label = expression('Z'['1%']*' = 2.1m'), aes(x = 3.0, y = 2.75),
+    label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill = "white"
+  ) +
   geom_segment(
     aes(x = 1.15, xend = 1.7, y = 2.1, yend = 2.7),
     arrow = arrow(ends = "first", type = "open", length = unit(0.25, "cm"))
@@ -687,9 +648,165 @@ p_light <- water_quality_clean %>%
     axis.text = element_text(color = "black"),
     axis.ticks = element_line(color = "black")
   )
+```
 
+### Figure 8 - Saving
+```{r fig8-save}
 ggsave(p_light, file = "figure8.png", device = "png", type = "cairo")
 ```
+
+## The Rest of the Figures 
+
+### Figure 2 - Temp, Alk, Cond, pH
+```{r fig2}
+p_alk <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  geom_text() +
+  geom_segment() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+p_cond <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+p_ph <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+plot2 <- (p_temp | p_alk) / (p_cond | p_ph) + 
+  plot_annotation(tag_levels = "A", tag_suffix = ".") &
+  theme_bw() &
+  theme(panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black"),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggsave(plot2, file = "figure2.png", device = "png", type = "cairo")
+```
+
+### Figure 3 - Temp, NH3, Org-N, NO3
+```{r fig3}
+p_nh3 <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  geom_text() +
+  geom_segment() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+p_orgn <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+p_no3 <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+plot3 <- (p_temp | p_nh3) / (p_orgn | p_no3) + 
+  plot_annotation(tag_levels = "A", tag_suffix = ".") &
+  theme_bw() &
+  theme(panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black"),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggsave(plot3, file = "figure3.png", device = "png", type = "cairo")
+```
+
+### Figure 4 - Temp, TP, SRP
+```{r fig4}
+p_tp <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  geom_text() +
+  geom_segment() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+p_srp <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+plot4 <- (p_temp | p_tp | p_srp) + 
+  plot_annotation(tag_levels = "A", tag_suffix = ".") &
+  theme_bw() &
+  theme(panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black"),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggsave(plot4, file = "figure4.png", device = "png", type = "cairo", height = 3.5, width = 8) # May need to adjust size 
+```
+
+### Figure 5 - Temp, Chla 
+```{r fig5}
+p_chla <- water_chem_clean %>% 
+  ggplot() +
+  geom_point() + 
+  geom_path() + 
+  geom_errorbarh() +
+  geom_text() +
+  geom_segment() +
+  coord_cartesian() +
+  scale_y_reverse() +
+  scale_x_continuous()
+
+plot5 <- (p_temp | p_chla)  + 
+  plot_annotation(tag_levels = "A", tag_suffix = ".") &
+  theme_bw() &
+  theme(panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black"),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggsave(plot5, file = "figure5.png", device = "png", type = "cairo", height = 3.5, width = 5) # May need to adjust size 
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 

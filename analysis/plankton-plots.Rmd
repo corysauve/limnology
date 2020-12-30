@@ -1,0 +1,278 @@
+---
+title: "Plankton Plots"
+author: "Cory Sauve"
+date: "10/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load libraries 
+```{r}
+library(tidyverse)
+library(here)
+library(patchwork)
+```
+
+### Load data 
+```{r}
+plankton_raw <- read_csv(here("data", "plankton raw.csv"))
+```
+
+### Transforming the plankton data 
+```{r}
+# Create function 
+cube_rt <- function(x){
+  x ^ (1/3)
+}
+
+# Overall plankton summary 
+plankton_summary <- plankton_raw %>% 
+  group_by(depth) %>% 
+  summarize(across(ends_with("nul"), list(mean = mean, min = min, max = max), .names = "{col}_{fn}")) %>% 
+  pivot_longer(
+    cols = dolichospermum_nul_mean:chaoborus_nul_max,
+    names_to = c("taxa", "unit", "stat"),
+    names_sep = "_" 
+  ) %>% 
+  mutate(taxa = str_to_title(taxa)) %>% 
+  select(-unit) %>% 
+  pivot_wider(
+    names_from = stat,
+    values_from = value
+  )
+
+# Phyt data 
+phyts <- plankton_summary %>% 
+  mutate(taxa = ifelse(taxa == "Dinobyron", "Dinobryon", taxa)) %>% # CORRECTING FOR KEYSTROKE ERROR IN NAME
+  filter(taxa %in% c("Dolichospermum", "Aphanizomenon", "Chrysosphaere", "Dinobryon")) %>% 
+  mutate(
+    mean_rt = cube_rt(mean),
+    upper_rt = cube_rt(max),
+    lower_rt = cube_rt(min),
+    upper_bound = abs(mean_rt - upper_rt),
+    lower_bound = abs(mean_rt - lower_rt)
+  ) %>% 
+  select(depth, taxa, mean_rt, upper_bound, lower_bound)
+
+# Zoop data 
+zoops <- plankton_summary %>% 
+  filter(!taxa %in% c("Dolichospermum", "Aphanizomenon", "Chrysosphaere", "Dinobryon")) %>% 
+  rename(lower_bound = min, upper_bound = max)
+```
+### Define variables 
+```{r}
+# 1% Light 
+one_percent_light <- 3.3
+
+# Bottom of Epi 
+bottom_of_epi <- 3.2
+```
+
+### Phyt Figure 
+```{r}
+p_aphani <- phyts %>%
+  filter(taxa == "Aphanizomenon") %>%
+  ggplot(aes(x = mean_rt, y = depth)) +
+  geom_point(size = 1.5) +
+  geom_path(size = 0.75) +
+  geom_errorbarh(aes(y = depth,
+                     xmin = mean_rt - lower_bound,
+                     xmax = mean_rt + upper_bound),
+                 height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 60)) +
+  scale_y_reverse(name = "Depth (m)") +
+  scale_x_continuous(
+    name = "",
+    breaks = seq(0, 60, 20),
+    labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
+  ggtitle("Aphanizomenon")
+
+p_chrysosphaere <- phyts %>% 
+  filter(taxa == "Chrysosphaere") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) + 
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = mean_rt - lower_bound, xmax = mean_rt + upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 60)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(
+    name = "",
+    breaks = seq(0, 60, 20),
+    labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
+  ggtitle("Chrysosphaerella") 
+
+p_dolicho <- phyts %>% 
+  filter(taxa == "Dolichospermum") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) + 
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = mean_rt - lower_bound, xmax = mean_rt + upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 60)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(
+    name = "",
+    breaks = seq(0, 60, 20),
+    labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
+  ggtitle("Dolichospermum") 
+
+p_dinobryon <- phyts %>% 
+  filter(taxa == "Dinobryon") %>% 
+  ggplot(aes(x = mean_rt, y = depth)) + 
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = mean_rt - lower_bound, xmax = mean_rt + upper_bound), height = 0.1) +
+  geom_text(aes(x = 40, y = 3.55), label = "1% Light Level (3.3 m)", size = 3) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_text(aes(x = 40, y = 2.95), label = "Bottom of Epi. (3.2 m)", size = 3) +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 60)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(
+    name = "",
+    breaks = seq(0, 60, 20),
+    labels = c(0, expression(20^3), expression(40^3), expression(60^3))) +
+  ggtitle("Dinobryon") 
+
+p_phyt <- (p_aphani | p_chrysosphaere | p_dolicho | p_dinobryon) +
+  plot_annotation(caption = "Density (#/L)") & 
+  theme_bw() & 
+  theme(plot.caption = element_text(hjust = 0.5, size = 12, vjust = 8),
+        plot.title = element_text(hjust = 0.5, size = 10, face = "italic"),
+        axis.title.y = element_text(size = 12),
+        panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black"),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggsave(p_phyt, file = "figure6.png", device = "png", type = "cairo", height = 6, width = 10)
+```
+
+### Zoop figure 
+```{r}
+# Ceriodaphnia
+p_ceriodaphnia <- zoops %>% 
+  filter(taxa == "Ceriodaphnia") %>% 
+  ggplot(aes(x = mean, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 150)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "") +
+  ggtitle("Ceriodaphnia") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 12),
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    plot.title = element_text(hjust = 0.5, size = 10, face = "italic")
+  )
+
+# Calanoid 
+p_calanoid <- zoops %>% 
+  filter(taxa == "Calanoid") %>% 
+  ggplot(aes(x = mean, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 150)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "") +
+  ggtitle("Calanoid") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 12),
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    plot.title = element_text(hjust = 0.5, size = 10, face = "italic")
+  )
+
+# Cyclopoid 
+p_cyclopoid <- zoops %>% 
+  filter(taxa == "Cyclopoid") %>% 
+  ggplot(aes(x = mean, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  coord_cartesian(xlim = c(0, 150)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "") +
+  ggtitle("Cyclopoid") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 12),
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    plot.title = element_text(hjust = 0.5, size = 10, face = "italic")
+  )
+
+# Nauplii...include b. of epi, light, chaoborus presence
+p_nauplii <- zoops %>% 
+  filter(taxa == "Nauplii") %>% 
+  ggplot(aes(x = mean, y = depth)) +
+  geom_point(size = 1.5) + 
+  geom_path(size = 0.75) + 
+  geom_errorbarh(aes(y = depth, xmin = lower_bound, xmax = upper_bound), height = 0.1) +
+  geom_text(aes(x = 115, y = 3.65), label = "1% Light Level (3.3 m)", size = 2.5) +
+  geom_hline(aes(yintercept = one_percent_light), linetype = "dashed") +
+  geom_text(aes(x = 115, y = 2.75), label = "Bottom of Epi. (3.2 m)", size = 2.5) +
+  geom_hline(aes(yintercept = bottom_of_epi), linetype = "dotted") +
+  geom_text(aes(x = 125, y = 5), label = "X", size = 5) +
+  geom_text(aes(x = 125, y = 6), label = "X", size = 5) +
+  geom_text(aes(x = 125, y = 8), label = "X", size = 5) +
+  coord_cartesian(xlim = c(0, 150)) +
+  scale_y_reverse(name = "") +
+  scale_x_continuous(name = "") +
+  ggtitle("Nauplii") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 12),
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  )
+
+p_zoop <- (p_ceriodaphnia | p_calanoid | p_cyclopoid | p_nauplii) +
+  plot_annotation(caption = "Density (#/L)") &
+  theme(plot.caption = element_text(hjust = 0.5, size = 12, vjust = 8))
+
+ggsave(p_zoop, file = "figure7.png", device = "png", type = "cairo", height = 6, width = 10)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
