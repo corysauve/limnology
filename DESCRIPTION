@@ -1,0 +1,19 @@
+Package: r4limnology
+Title: Using R for Limnology
+Version: 0.0.0.9000
+Authors@R: person("Cory", "Sauve", email = "coryjsauve@gmail.com",
+                  role = c("aut", "cre"))
+Description: Contains materials for using R for common analytical tasks in limnology. 
+    This package is geared toward undergraduate and graduate students, but anyone using R 
+    for limnological or other aquatic-related analyses should find this workshop useful.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+URL: https://corysauve.github.io/r4limnology/
+VignetteBuilder: knitr
