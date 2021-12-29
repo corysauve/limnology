@@ -1,0 +1,371 @@
+---
+title: "Limno Data Manipulation Guide"
+author: "Cory Sauve"
+date: "10/13/2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Purpose
+
+The following guide will go over the steps to manipulate your data for plotting. It will cover how to import your data, how to create and edit variables, and finally how to transform your data to create the required figures.  
+
+# Required packages 
+
+We will use a variety of packages in this guide. I have included the following code to load all of the packages.  If you get an error after running this code it is an indication that you do not have a specific package installed on your system.  Use `install.packages()` (or `install_github` in the case of `wadeR`) to install a missing package. 
+
+```{r packages, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(here)
+library(wadeR)
+library(cowplot)
+library(data.table)
+```
+
+# Importing Data 
+
+The first step in manipulating our data is to import the .csv files into our environment.  We will do so with `read_csv()` and `here()` as we are importing .csv data. 
+
+```{r import, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+wq <- read_csv(here("2_data", "wq_plotting.csv"))
+plankton <- read_csv(here("2_data", "plankton_plotting.csv"))
+```
+
+It is important to note the usage for `here()` within the `read_csv()` package.  `here()` tells R where to look for our data.  In this case, the data are found in a folder called 2_data in the project directory.  If you called this folder a different name, you will need to change the "2_data" argument to the name of your folder. The second argument in `here()` is the name of the .csv file in which we plan to import.  Again, if you changed the name of the file, you will have to modify the above code.  
+
+# Inspecting the data 
+
+R comes with some useful functions to get an idea of how our dataframes are shaped and what they contain. To inspect the *entire* dataframe, we can pass the `View()` function.
+
+```{r data view, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+View(wq)
+```
+
+We can see that `View()` opened a new tab in our environment with the contents of the `wq` dataframe.  This is a handy way to explore a relatively small dataframe.  You should take caution with using `View()` on larger datasets as it can cause R to get mad or just flat out crash.  You won't know what your computer considers "big data" until it crashes while attempting to view a dataframe.  I'd personally recommend not using `View` on anything that exceeds a couple thousand rows. 
+
+An alternative to `View()` are the functions `head()` and `tail()`.  `head()` will return the first 6 rows of a dataframe while showing all of the columns.  
+
+```{r data view 2, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+head(wq)
+```
+
+As you may have expected, `tail()` does the inverse of `head()` and returns the last 6 rows. 
+```{r tail, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+tail(wq)
+```
+
+A more comprehensive look at the `wq` dataframe is to use `glimpse()`.  `glimpse()` returns the number of observations (i.e. rows) and variables (i.e. columns) in our dataframe, as well as a bunch of information about each variable.
+```{r glimpse, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+glimpse(wq)
+```
+
+We can see from the output that the rows of the `wq` data represent discrete depths (with duplicated depths that represent duplicates and replicates).  The variables in the dataframe include some sample information and then every parameter collected at University Lake.  We can use this information about our dataframe to start manipulating the data for plotting.  
+
+# Manipulating the data 
+
+The following section will go over the computations required to manipulate the water quality and plankton data in order to make the figures.  
+
+## Water Quality data 
+
+We have already taken a thorough look at the water quality data that are stored in the `wq` object.  The following sections will utilize this knowledge to further manipulate the data. 
+
+#### Method Detection Limits (MDL's)
+
+Many of our laboratory instruments have method detection limits.  A method detection limit represents the lowest concentration in which a sample can be measured and reported with ~99% confidence.  In our case, we have method detection limits for soluble reactive phosphorus, total phosphorus, nitrate, ammonia, total nitrogen, and chlorophyll-a.
+
+We can simply check to see if some of our nutrient values are below the MDL and convert if so with an `ifelse()` statement.  The following code takes the `wq` dataframe and edits the nutrient data utilizing a simple if-else statement.  We will store the new data in `wq1` to create some version control. 
+```{r mdls, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# Convert values to MDLs 
+wq1 <- wq %>% 
+  mutate(
+    srp_mgl = ifelse(srp_mgl <= 0.002, 0.002, srp_mgl),
+    tp_mgl = ifelse(tp_mgl <= 0.002, 0.002, tp_mgl),
+    no3_mgl = ifelse(no3_mgl <= 0.009, 0.009, no3_mgl),
+    nh3_mgl = ifelse(nh3_mgl <= 0.015, 0.015, nh3_mgl),
+    tn_mgl = ifelse(tn_mgl <= 0.104, 0.104, tn_mgl)
+  )
+```
+
+#### Percent Light 
+
+One of the plots we are going to make is plotting the light transmission decrease with depth.  We did not calculate percent light directly, but can easily get at it from the measurements we took.  Since we calculated the surface light and light at a discrete depth, we can calculate percent light (Lp) with $Lp = (Ld (mmol) / Ls (mmol)) * 100$, where Ld is the light at a depth and Ls is the light at surface for each depth measurement.  
+
+To do this, we will create a new variable, `light_level_per` with the `mutate()` function and use the formula above.  It is also important to control our significant figures so we'll round the final result to have one decimal place with `round()`. Again, we'll create a new dataframe, `wq2`, to continue version control.  
+```{r}
+wq2 <- wq1 %>% 
+  mutate(
+    light_level_per = ((light_dep_mmol / light_sur_mmol) * 100),
+    light_level_per = round(light_level_per, 1)
+) 
+```
+
+#### Standard deviations 
+
+Our next step is to calculate standard deviations of the water quality parameters.  We'll use these to develop variables to create error bars for the figures.  We'll first create a custom function, `sd_calc()`, that will calculate the deviation between rows and then implement the function to create new variables containing the deviations.  
+```{r sd, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# Create custom function for standard deviation 
+sd_calc <- function(x){abs(x - lag(x))} 
+# Creates standard dev. variables for each wq parameter 
+wq3 <- wq2 %>% 
+  group_by(depth) %>% 
+  mutate(
+    srp_sd = sd_calc(srp_mgl),
+    tp_sd = sd_calc(tp_mgl),
+    alk_sd = sd_calc(alk_mgl),
+    nh3_sd = sd_calc(nh3_mgl),
+    no3_sd = sd_calc(no3_mgl),
+    tn_sd = sd_calc(tn_mgl),
+    chla_sd = sd_calc(chla_ugl),
+    temp_sd = sd_calc(temp_c),
+    do_sd = sd_calc(do_mgl),
+    do_sat_sd = sd_calc(do_sat_per),
+    pH_sd = sd_calc(ph),
+    cond_sd = sd_calc(cond_umhos),
+    turb_sd = sd_calc(turb_ntu)
+  )
+```
+
+#### Calculate means 
+
+We will now calculate the mean values between our measurements and those that represent duplicates or replicates.  To do this, we'll first determine the variables we want to average and then use `mutate()` to average the variables across the dataframe `wq3`.  
+```{r means, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# Creating vector of column names in wq 
+col_names <- colnames(wq3)
+col_names2 <- col_names[4:18]
+# Calculating means of wq parameters 
+wq4 <- wq3 %>% 
+  group_by(depth) %>% 
+  mutate_at(col_names2, mean, na.rm = TRUE)
+```
+
+The final step to get the mean values is to average the standard deviations, remove the duplicated rows, and then add missing values to those that are NaN.  
+
+```{r rep dup, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# Overwrites standard dev. variables to calculate mean 
+wq5 <- wq4 %>% 
+  group_by(depth) %>% 
+  mutate(
+    srp_sd = mean(srp_sd, na.rm = TRUE),
+    tp_sd = mean(tp_sd, na.rm = TRUE),
+    alk_sd = mean(alk_sd, na.rm = TRUE),
+    nh3_sd = mean(nh3_sd, na.rm = TRUE),
+    no3_sd = mean(no3_sd, na.rm = TRUE),
+    tn_sd = mean(tn_sd, na.rm = TRUE),
+    chla_sd = mean(chla_sd, na.rm = TRUE),
+    temp_sd = mean(temp_sd, na.rm = TRUE),
+    do_sd = mean(do_sd, na.rm = TRUE),
+    do_sat_sd = mean(do_sat_sd, na.rm = TRUE),
+    pH_sd = mean(pH_sd, na.rm = TRUE),
+    cond_sd = mean(cond_sd, na.rm = TRUE),
+    turb_sd = mean(turb_sd, na.rm = TRUE)
+    )
+#### Delete duplicated rows 
+wq6 <- wq5 %>%
+  filter(!sample_type %in% c("rep", "dup"))
+# Change NaN to missing values 
+wq6[wq6 == "NaN"] <- NA
+```
+
+#### Calculate organic nitrogen 
+
+Our methods do not determine organic nitrogen directly so we will need to calculate it from the other nitrogen parameters.  Organic nitrogen can be easily calculated by subtracting the inorganic nitrogen species from total nitrogen.  The `wadeR` package has a function to do this, `find_orgn`.
+
+```{r orgn, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Calculate organic-nitrogen; create new variable 
+wq7 <- wq6 %>% 
+  mutate(org_n_mgl = round(wadeR::find_orgn(tn_mgl, no3_mgl, nh3_mgl, "epi"), 3)
+ )
+```
+
+#### Controlling sig figs 
+
+R does not know what the significant figures of our methods are, so we must be diligent in our control of them.  You could either do this at each step, or control for them at the end.  We will do the later using the `round()` function.
+
+```{r}
+wq7 <- wq7 %>% 
+  mutate(
+    temp_c = round(temp_c, 2), 
+    do_mgl = round(do_mgl, 2),
+    do_sat_per = round(do_sat_per, 1), 
+    cond_umhos = round(cond_umhos, 1),
+    light_sur_mmol = round(light_sur_mmol, 0),
+    light_dep_mmol = round(light_dep_mmol, 0),
+    ph = round(ph, 1), 
+    alk_mgl = round(alk_mgl, 0),
+    turb_ntu = round(turb_ntu, 1),
+    srp_mgl = round(srp_mgl, 3),
+    tp_mgl = round(tp_mgl, 3),
+    nh3_mgl = round(nh3_mgl, 3),
+    no3_mgl = round(no3_mgl, 3),
+    tn_mgl = round(tn_mgl, 3),
+    chla_ugl = round(chla_ugl, 2),
+    org_n_mgl = round(org_n_mgl, 3),
+    light_level_per = round(light_level_per, 1)
+  )
+```
+
+
+## Plankton Data 
+
+We will now transition to the plankton data. There is a lot of code below that you do not need to necessarily understand how it works.  Essentially, we will break the plankton data into separate dataframes by genus, determine the means and bounds (for error bars), and then select the columns we want.  One important note is that we are going to transform the phytoplankton values with a cube root in order to smooth the lines.  
+
+```{r plankton data, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Cube root function
+cube_rt <- function(x){x ^ (1/3)}
+# Dolichospermum 
+dolichospermum <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(dolichospermum_nul),
+    min = min(dolichospermum_nul),
+    max = max(dolichospermum_nul)
+  ) %>% 
+  mutate(
+    taxa = "Dolichospermum",
+    mean_rt = cube_rt(mean),
+    upper_rt = cube_rt(max),
+    lower_rt = cube_rt(min),
+    upper_bound = abs(mean_rt - upper_rt),
+    lower_bound = abs(mean_rt - lower_rt)
+  ) %>% 
+  select(depth, taxa, mean_rt, upper_bound, lower_bound)
+dolichospermum[is.na(dolichospermum)] <- 0
+# Aphanizomenon
+aphanizomenon <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(aphanizomenon_nul),
+    min = min(aphanizomenon_nul),
+    max = max(aphanizomenon_nul)
+  ) %>% 
+  mutate(
+    taxa = "Aphanizomenon",
+    mean_rt = cube_rt(mean),
+    upper_rt = cube_rt(max),
+    lower_rt = cube_rt(min),
+    upper_bound = abs(mean_rt - upper_rt),
+    lower_bound = abs(mean_rt - lower_rt)
+  ) %>% 
+  select(depth, taxa, mean_rt, upper_bound, lower_bound)
+aphanizomenon[is.na(aphanizomenon)] <- 0
+# Microcystis 
+microcystis <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(microcystis_nul),
+    min = min(microcystis_nul),
+    max = max(microcystis_nul)
+  ) %>% 
+  mutate(
+    taxa = "Microcystis",
+    mean_rt = cube_rt(mean),
+    upper_rt = cube_rt(max),
+    lower_rt = cube_rt(min),
+    upper_bound = abs(mean_rt - upper_rt),
+    lower_bound = abs(mean_rt - lower_rt)
+  ) %>% 
+  select(depth, taxa, mean_rt, upper_bound, lower_bound)
+microcystis[is.na(microcystis)] <- 0
+# Ceratium 
+ceratium <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(ceratium_nul),
+    min = min(ceratium_nul),
+    max = max(ceratium_nul)
+  ) %>% 
+  mutate(
+    taxa = "Ceratium",
+    mean_rt = cube_rt(mean),
+    upper_rt = cube_rt(max),
+    lower_rt = cube_rt(min),
+    upper_bound = abs(mean_rt - upper_rt),
+    lower_bound = abs(mean_rt - lower_rt)
+  ) %>% 
+  select(depth, taxa, mean_rt, upper_bound, lower_bound)
+ceratium[is.na(ceratium)] <- 0
+# Nauplii
+nauplii <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(nauplii_nul),
+    min = min(nauplii_nul),
+    max = max(nauplii_nul)
+  ) %>% 
+  mutate(taxa = "Nauplii") %>% 
+  select(depth, taxa, mean, min, max)
+nauplii[is.na(nauplii)] <- 0
+# Bosmina 
+bosmina <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(bosmina_nul),
+    min = min(bosmina_nul),
+    max = max(bosmina_nul)
+  ) %>% 
+  mutate(taxa = "Bosmina") %>% 
+  select(depth, taxa, mean, min, max)
+bosmina[is.na(bosmina)] <- 0
+# Calanoid 
+calanoid <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(calanoid_nul),
+    min = min(calanoid_nul),
+    max = max(calanoid_nul)
+  ) %>% 
+  mutate(taxa = "Calanoid") %>% 
+  select(depth, taxa, mean, min, max)
+calanoid[is.na(calanoid)] <- 0
+# Cyclopoid 
+cyclopoid <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(cyclopoid_nul),
+    min = min(cyclopoid_nul),
+    max = max(cyclopoid_nul)
+  ) %>% 
+  mutate(taxa = "Cyclopoid") %>% 
+  select(depth, taxa, mean, min, max)
+cyclopoid[is.na(cyclopoid)] <- 0
+# Chaoborus 
+chaborus <- plankton %>% 
+  group_by(depth) %>% 
+  summarize(
+    mean = mean(chaoborus_nul)
+  ) %>% 
+  mutate(
+    taxa = "Chaborus",
+    mean = ifelse(mean > 0, 1, mean)
+  ) %>% 
+  select(depth, taxa, mean)
+```
+
+## Other Variables 
+
+To wrap up the data manipulation, we'll make a few more variables that we will add to the plots: Secchi depth, one-percent light, and the bottom of the epilimnion.  
+
+#### Secchi depth 
+
+We'll store the Secchi depth as the object `secchi`
+```{r secchi, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Define Secchi depth 
+secchi <- 0.75 
+```
+
+#### One percent light level 
+
+To calculate the one-percent light level, we will use the `per_light()` function in the `wadeR` function, and then store it as the object `one_per_light`.
+```{r light, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# Define one percent light level 
+one_per_light <- wadeR::per_light(wq7$depth, wq7$light_dep_mmol)
+```
+
+#### Bottom of epi 
+
+You will need to estimate this using the resources in Wetzel and in the lecture material.  Ask Prof. Royer in class if you are confused with how to do this.  

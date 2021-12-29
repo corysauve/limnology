@@ -1,0 +1,108 @@
+---
+title: "Getting Started with R"
+author: "Cory Sauve"
+date: "9/16/19"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The first steps 
+
+#### Downloading R and R Studio
+
+To download R, go to the CRAN site [here](https://cran.r-project.org/).  You will find instructions to download R for Windows, Mac, or Linux systems on the CRAN site.  If you are using a Mac computer, you will also need to download XQuartz [here](https://www.xquartz.org/). 
+
+To enhance our R workflow, we will use the integrated development environment (IDE), R Studio, for all of our work in R.  R Studio makes R more user friendly and the IDE is quite elegant.  To download RStudio, go to this [link](http://www.rstudio.com/download).  From here on, when I refer to R I am referring to RStudio.  
+
+If you are unable to bring your own laptop to class, R Studio is available on the computers in the lab and on most IU computers across campus. If you are using a Chromebook, R and R Studio is not supported for download.  R Studio can be accessed through IUanyware or on IU computers across campus.
+
+#### Downloading packages 
+
+R has thousands of packages that enhance the capabilities of base R.  Packages are essentially collections of functions/data/documentation that improve base R.    
+
+The function `install.packages()` will allow you to install the R packages. You only need to install a package once on your computer! To download, simply run the following code in the Console *command* line:
+```{r installing packages, eval = FALSE, echo = TRUE, warning = FALSE, message = FALSE}
+install.packages("tidyverse")
+```
+
+We will use several additional packages in this demo.  Install them with the following code: 
+```{r installing packages 2, eval = FALSE, echo = TRUE, warning = FALSE, message = FALSE}
+install.packages("here")
+install.packages("data.table")
+install.packages("markdown")
+```
+
+We're also going to use some functions in my R package, `wadeR`.  Currently, `wader` is under development and only available on GitHub. You'll need to use the `devtools` package. Install the package by:
+```{r installing devtools, eval = FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+install.packages("devtools")
+```
+
+To install the `wadeR` package, use the `install_github()` function in `devtools`
+```{r install wadeR, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+library(devtools)
+install.github("corysauve/wadeR", dependencies = TRUE)
+```
+
+Finally, we can load `wadeR` with:
+```{r}
+library(wadeR)
+```
+
+#### Establishing a Working Directory
+
+Setting a working directory prior to running ANY R code is incredibly important.  Essentially, a working directory is a folder location on your computer that R will look in when pulling files into the IDE or exporting output.  I recommend creating a folder completely dedicated to your R work.  This will allow you to always know where your work is going.  Make sure you know the file path so you can reference it later!  My advice would be to make the path to this file as short as possible.  Saving it on your desktop is probably the best place.  I'd also give the folder a short name: `R`, `r`, or `R_work` are good ideas. If you are using an IU computer, I would either use a external drive or use Box for your working directory.  
+
+## Getting organized 
+
+#### Starting a new project 
+
+It is helpful to use an `R Project` for every *project* you do in R.  This allows us to direct everything you do into a working directory, which is the file path in which R will look to find stuff. To start a new project, you can either click on the cube icon in the top left of the window or go to `File > New Project` while in R Studio.  Click on `New Directory > New Project`.  Now you can name the folder in which the project will be contained.  **Make sure that this is in the folder you designated to be your working directory**!!
+
+I personally recommend a standard folder structure for every project folder you create. Here's an example of a normal folder structure: 
+
+1_r - Contains common R functions used in the analysis   
+2_data - Contains raw data files. These should be **read only**!    
+3_doc - Any summaries or manuscripts produced during an analysis    
+4_figs - Any figures or tables produced during analysis    
+5_output - Any other output created during the analysis. This is where manipulated data should live    
+6_analysis - All analysis files (Where annotated markdown files live).     
+project.Rproj    
+README.md     
+
+#### Avoiding the command line with R Markdown 
+
+One of the awesome features of R is the ability to use markdown files from `R Markdown`.  This will allow you to not only write code but to document along the way.  This guide is the result of a markdown file.  To start a new markdown file, go to `File > New File > R Markdown`.  You can name and pick the export file type you would like.  I'd recommend picking the HTML file type. 
+
+#### Loading and inspecting packages 
+
+Loading a package into your environment can be done with one function: 
+```{r libraries, echo = TRUE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(data.table)
+library(here)
+```
+
+If you prefer the clicky approach, you can go to the `Packages` tab in the bottom right and then manually check the package you are using.  I don't recommend this as you lose the built-in documentation writing *actual* code naturally accomplishes.  
+
+#### Checking package contents
+
+Most packages come with built in documentation that allows you to quickly figure out what the package contains and does:
+```{r package help, eval = FALSE, echo = TRUE, warning = FALSE, message = FALSE}
+?tidyverse
+```
+
+If you are interested in more details regarding a packages, many can be found on the CRAN project [website](https://cran.r-project.org/).    
+    
+Another resource you may have heard of it [GitHub](https://github.com/). You can download packages directly from GitHub, find package documentation, and see what other projects programmers are working on. 
+     
+## Troubleshooting 
+
+If you run into any issues with using R you can email me or find me during my office hours: 
+
+csauve@iu.edu 
+Office hours: Mon/Wed 2:00-4:00 pm (PV 371)

@@ -1,0 +1,172 @@
+---
+title: "Guide to Light Figure"
+author: "Cory Sauve"
+date: "10/14/2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+wq7 <- readr::read_csv(here::here("5_output", "wq7.csv"))
+secchi <- 0.75
+one_per_light <- 2.1
+```
+
+```{r, eval=TRUE, echo=FALSE}
+theme_awesome <- function(){
+  theme(
+    plot.background = element_rect(fill = "gray100", color = NA),
+    panel.background = element_rect(fill = "gray96", color = NA),
+    panel.border = element_rect(fill = NA, color = "grey90"),
+    panel.grid.major = element_line(color = "grey90", size = 0.5),
+    panel.grid.minor = element_blank(),
+    axis.line.x = element_line(color = "grey25", size = 1),
+    axis.line.y = element_blank(),
+    axis.text = element_text(color = "grey60", size = 10, family = "Helvetica"),
+    axis.title = element_text(color = "grey25", size = 12),
+    axis.ticks.x = element_line(size = 0.5, color = "grey25"),
+    axis.ticks.y = element_line(size = 0.5, color = "grey90"),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+}
+```
+
+# Purpose 
+
+The following guide is to serve as a walk through to generate the light transmittance figure for your lab reports. An example of what this figure looks like can be found on Canvas in the *Required figures for reports* document.  
+
+# Required libraries 
+
+We're going to use the `ggplot2` package to make all of our figures.  It's already included in the `tidyverse` package we have already been using.  
+```{r}
+library(tidyverse)
+```
+
+# Required data 
+
+You should already have completed the *Limno Data Manipulation Guide* and have the dataframe `wq7` loaded into your environment.  If you do not have `wq7` ready, go back and complete the manipulation guide.  `wq7` should look the this:
+```{r, echo=TRUE, eval=FALSE}
+View(wq7)
+```
+
+# Creating a light dataframe 
+
+The first step to making the light figure is to modify the `wq7` dataframe we have been using.  Since we are going to log-transform the light variable, we need to make sure we do not have any zeros in the data.  R will return a error if you try to do log(0), as it is not a real number.  
+
+To do this, we'll first select the variables we want with `select()` and then use a simple `ifelse()` statement to change all zeros to missing values (*NA*).  We are going to store this new dataframe as `light_plot`.  
+```{r light plot, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+light_plot <- wq7 %>% 
+  select(depth, light_level_per) %>% 
+  mutate(light_level_per = ifelse(light_level_per == 0, NA, light_level_per))
+```
+
+# Creating the starting `ggplot`
+
+The first steps to make the light figure will look very similar to how we made the water quality figures.  We will start with `ggplot()` to add the dataframe used in the plot, and then pass the x and y-variables in the `aes()` function.  We can then points and lines with `geom_point()` and `geom_path`, respectively.  
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) 
+```
+
+# Modifying the Axes 
+
+Now that we have the basic framework, we can start modifying the x and y-axis.  We'll want to manually define the axis limits with `coord_cartesian()` prior to modification. 
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8))
+```
+
+For the y-axis, we only need to reverse the values and set the sequence.  Like the previous plots, `scale_y_reverse()` will be used to do this
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2))
+```
+
+For the x-axis, we will have to do a little more work.  We need to first log-transform the light data to smooth the line, and then manually define the labels on the axis.  `scale_x_log10` does the heavy lifting for us.
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2)) +
+  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100"))
+```
+
+Notice that the measurements after depth 3 do not show up on the figure.  This is due to the log(0) issue we talked about above.  
+
+
+# Changing the figure apperance
+
+Now that all of the data are transformed and correctly plotted, we can modify the overall appearance of the figure.  First, we want to add log-ticks to the x-axis with `annotation_logticks()`
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2)) +
+  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100")) +
+  annotation_logticks(sides = "b")
+```
+
+We also want to label where the one-percent light level is on the line.  Remember that we already stored this value as the object, `one_per_light`.  We'll use `geom_label()` to create the text label and then `geom_segment()` to draw the arrow. Figuring out the optimal position of the arrow and text label is going to take a minute of troubleshooting on your part.  
+
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2)) +
+  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100")) +
+  annotation_logticks(sides = "b") +
+  geom_label(label= expression('Z'['1%']*' = 2.1m'), aes(x = 3.5, y = 3.1),
+    label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill="white") +
+  geom_segment(aes(x = 1.1, y = 2.1, xend = 2, yend = 3),
+               arrow = arrow(ends = "first", type = "open", length = unit(0.25, "cm"))) 
+```
+
+The final step is to add the custom theme we have been using to the figure.  You should already have `theme_awesome()` loaded in your environment as a function.  If you do not, go over the `4_wq_figure_guide` again.  
+
+```{r}
+ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2)) +
+  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100")) +
+  annotation_logticks(sides = "b") +
+  geom_label(label= expression('Z'['1%']*' = 2.1m'), aes(x = 3.5, y = 3.1),
+    label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill="white") +
+  geom_segment(aes(x = 1.1, y = 2.1, xend = 2, yend = 3),
+               arrow = arrow(ends = "first", type = "open", length = unit(0.25, "cm"))) +
+  theme_awesome()
+```
+
+# Saving the plot
+
+We can save the light plot using `ggsave()`, just like we did for the other plots. Make sure you save the above plot as an object to properly save it
+```{r}
+plot6 <- ggplot(data = light_plot, aes(x = light_level_per, y = depth)) +
+  geom_path(size = 1) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0.1, 100), ylim = c(0, 8)) +
+  scale_y_reverse(name = "Depth (m)", breaks = seq(0, 8, 2)) +
+  scale_x_log10(name = "Light Transmittance (%)", breaks = c(0.1, 1, 10, 100), labels = c("0.01", "1", "10", "100")) +
+  annotation_logticks(sides = "b") +
+  geom_label(label= expression('Z'['1%']*' = 2.1m'), aes(x = 3.5, y = 3.1),
+    label.padding = unit(0.55, "lines"), label.size = 0.35, color = "black", fill="white") +
+  geom_segment(aes(x = 1.1, y = 2.1, xend = 2, yend = 3),
+               arrow = arrow(ends = "first", type = "open", length = unit(0.25, "cm"))) +
+  theme_awesome()
+ggsave(plot6, file = "plot6.png")
+```
